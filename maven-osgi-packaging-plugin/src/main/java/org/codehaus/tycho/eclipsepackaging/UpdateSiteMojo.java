@@ -11,6 +11,7 @@ import org.codehaus.tycho.buildversion.VersioningHelper;
 import org.codehaus.tycho.model.FeatureRef;
 import org.codehaus.tycho.model.UpdateSite;
 import org.codehaus.tycho.model.UpdateSite.SiteFeatureRef;
+import org.codehaus.tycho.osgitools.BundleReader;
 
 /**
  * @goal update-site
@@ -27,6 +28,12 @@ public class UpdateSiteMojo
 
     /** @parameter */
     private boolean inlineArchives;
+    
+    /**
+     * @component
+     */
+    private BundleReader manifestReader;
+
 
     public void execute()
         throws MojoExecutionException, MojoFailureException
@@ -39,7 +46,7 @@ public class UpdateSiteMojo
         {
             UpdateSite site = UpdateSite.read( new File( basedir, UpdateSite.SITE_XML ) );
 
-            UpdateSiteAssembler assembler = new UpdateSiteAssembler( session, target );
+            UpdateSiteAssembler assembler = new UpdateSiteAssembler( session, target, manifestReader );
             assembler.setPack200( site.isPack200() );
             if ( inlineArchives )
             {

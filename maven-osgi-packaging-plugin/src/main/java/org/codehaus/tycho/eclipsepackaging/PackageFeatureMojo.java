@@ -8,9 +8,11 @@ import java.util.List;
 import java.util.Properties;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 
 import org.apache.maven.archiver.MavenArchiveConfiguration;
 import org.apache.maven.archiver.MavenArchiver;
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
@@ -23,6 +25,7 @@ import org.codehaus.tycho.buildversion.VersioningHelper;
 import org.codehaus.tycho.model.Feature;
 import org.codehaus.tycho.model.FeatureRef;
 import org.codehaus.tycho.model.PluginRef;
+import org.codehaus.tycho.osgitools.BundleReader;
 
 /**
  * @phase package
@@ -73,6 +76,12 @@ public class PackageFeatureMojo
      * @parameter expression="${project.build.directory}/site" 
      */
     private File target;
+    
+    /**
+     * @component
+     */
+    private BundleReader manifestReader;
+
 
     public void execute()
         throws MojoExecutionException, MojoFailureException
@@ -145,7 +154,7 @@ public class PackageFeatureMojo
     private void assembleDeployableFeature( Feature feature )
         throws MojoExecutionException
     {
-        UpdateSiteAssembler assembler = new UpdateSiteAssembler( session, target );
+        UpdateSiteAssembler assembler = new UpdateSiteAssembler( session, target, manifestReader );
         getDependencyWalker().walk( assembler );
     }
 
@@ -171,13 +180,7 @@ public class PackageFeatureMojo
                 MavenProject bundleProject = plugin.getMavenProject();
                 if ( bundleProject != null )
                 {
-                    location = bundleProject.getArtifact().getFile();
-
-                    if ( location == null || location.isDirectory() )
-                    {
-                        throw new IllegalStateException( "At least ``package'' phase execution is required" );
-                    }
-
+                	location = UpdateSiteAssembler.getBuiltArtifactLocation(plugin, bundleProject, manifestReader);
                     pluginRef.setVersion( VersioningHelper.getExpandedVersion( bundleProject, pluginRef.getVersion() ) );
                 }
                 else
@@ -232,6 +235,12 @@ public class PackageFeatureMojo
         } );
 
         return feature;
+    }
+    
+    protected boolean isSourceBundle( PluginDescription plugin )
+    {
+        Manifest mf = manifestReader.loadManifest( plugin.getLocation() );
+        return manifestReader.parseHeader( "Eclipse-SourceBundle", mf ) != null;
     }
 
     private JarArchiver getJarArchiver()

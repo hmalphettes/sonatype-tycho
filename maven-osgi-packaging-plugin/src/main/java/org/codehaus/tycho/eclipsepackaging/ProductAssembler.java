@@ -17,12 +17,9 @@ public class ProductAssembler
 
     private boolean includeSources;
 
-    private final BundleReader manifestReader;
-
     public ProductAssembler( MavenSession session, BundleReader manifestReader, File target, TargetEnvironment environment )
     {
-        super( session, target );
-        this.manifestReader = manifestReader;
+        super( session, target, manifestReader );
         setUnpackPlugins( true );
         setUnpackFeatures( true );
         this.environment = environment;
@@ -44,12 +41,6 @@ public class ProductAssembler
         super.visitPlugin( plugin );
     }
 
-    private boolean isSourceBundle( PluginDescription plugin )
-    {
-        Manifest mf = manifestReader.loadManifest( plugin.getLocation() );
-        return manifestReader.parseHeader( "Eclipse-SourceBundle", mf ) != null;
-    }
-
     @Override
     protected boolean isDirectoryShape( PluginDescription plugin, File location )
     {
@@ -57,7 +48,7 @@ public class ProductAssembler
         {
             return true;
         }
-
+        
         Manifest mf = manifestReader.loadManifest( location );
 
         return manifestReader.isDirectoryShape( mf );

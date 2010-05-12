@@ -8,7 +8,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.util.Map;
+import java.util.jar.Manifest;
 
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.archiver.ArchiverException;
@@ -24,6 +26,7 @@ import org.codehaus.tycho.PluginDescription;
 import org.codehaus.tycho.buildversion.VersioningHelper;
 import org.codehaus.tycho.eclipsepackaging.pack200.Pack200Archiver;
 import org.codehaus.tycho.model.PluginRef;
+import org.codehaus.tycho.osgitools.BundleReader;
 
 /**
  * Assembles standard eclipse update site directory structure on local filesystem.
@@ -60,11 +63,14 @@ public class UpdateSiteAssembler
      * feature jars.
      */
     private boolean unpackFeatures;
+    
+    protected final BundleReader manifestReader;
 
-    public UpdateSiteAssembler( MavenSession session, File target )
+    public UpdateSiteAssembler( MavenSession session, File target, BundleReader manifestReader )
     {
         this.session = session;
         this.target = target;
+        this.manifestReader = manifestReader;
     }
 
     public boolean visitFeature( FeatureDescription feature )
@@ -128,7 +134,58 @@ public class UpdateSiteAssembler
 
         return new File( target, sb.toString() );
     }
+    
+    /**
+     * Returns the location of the built artifact.
+     * When the plugin passed is a source bundle looks into the attached artifact for the one with
+     * the 'sources' classifier.
+     * Otherwise returns the main artifact built by the project.
+     * 
+     * @param plugin The plugin built now used in a feature or a product.
+     * @param bundleProject The project where this plugin is generated. Must not be null.
+     * @param manifestReader
+     * @return The location of the artifact built by this reactor project.
+     */
+    static File getBuiltArtifactLocation(PluginDescription plugin, MavenProject bundleProject, BundleReader manifestReader) {
+    	File location = null;
+    	if (isSourceBundle(plugin, manifestReader))
+    	{
+    		Artifact builtSources = null;
+    		for (Artifact attached : bundleProject.getAttachedArtifacts())
+    		{
+    			if ("sources".equals(attached.getClassifier()))
+    			{
+    				builtSources = attached;
+    				break;
+    			}
+    		}
+    		if (builtSources != null)
+    		{
+    			location = builtSources.getFile();
+    		}
+    		else
+    		{
+    			//error?
+    			System.err.println("WARNING: the bundle " + plugin.getPluginRef().getId() +
+    					" looks like a source bundle usually generated" +
+    					" by the maven-osgi-source plugin. No such artifact was built by the project " + bundleProject);
+    			//in the mean time default on the main artifact.
+    			location = bundleProject.getArtifact().getFile();
+    		}
+    	}
+    	else
+    	{
+    		location = bundleProject.getArtifact().getFile();
+    	}
 
+        if ( location == null || location.isDirectory() )
+        {
+            throw new IllegalStateException( "At least ``package'' phase execution is required" );
+        }
+        return location;
+    }
+    
+    
     public void visitPlugin( PluginDescription plugin )
     {
         String bundleId = plugin.getKey().getId();
@@ -146,17 +203,11 @@ public class UpdateSiteAssembler
         {
             throw new IllegalStateException( "Unresolved bundle reference " + bundleId + "_" + version );
         }
-
         MavenProject bundleProject = plugin.getMavenProject();
         if ( bundleProject != null )
         {
-            location = bundleProject.getArtifact().getFile();
-            if ( location.isDirectory() )
-            {
-                throw new RuntimeException( "Bundle project " + bundleProject.getId()
-                    + " artifact is a directory. The build should at least run ``package'' phase." );
-            }
-            version = VersioningHelper.getExpandedVersion( bundleProject, version );
+        	location = getBuiltArtifactLocation(plugin, bundleProject, manifestReader);
+        	version = VersioningHelper.getExpandedVersion( bundleProject, version );
         }
 
         if ( unpackPlugins && isDirectoryShape( plugin, location ) )
@@ -193,7 +244,26 @@ public class UpdateSiteAssembler
 //            }
         }
     }
+    
+    static boolean isSourceBundle( PluginDescription plugin, BundleReader manifestReader )
+    {
+    	if (plugin.getMavenProject() != null && plugin.getKey().getId().endsWith(".source"))
+    	{
+    		//TYCHO-192
+    		//when this is the attached sources... we can't read the manifest as
+    		//the file would point to the main runtime bundle; not the generated one.
+    		return true;
+    	}
+        Manifest mf = manifestReader.loadManifest( plugin.getLocation() );
+        return manifestReader.parseHeader( "Eclipse-SourceBundle", mf ) != null;
+    }
 
+    protected boolean isSourceBundle( PluginDescription plugin )
+    {
+        return isSourceBundle(plugin, manifestReader);
+    }
+
+    
     protected boolean isDirectoryShape( PluginDescription plugin, File location )
     {
         PluginRef pluginRef = plugin.getPluginRef();
