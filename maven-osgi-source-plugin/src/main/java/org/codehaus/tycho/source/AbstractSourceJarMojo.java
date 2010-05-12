@@ -224,10 +224,21 @@ public abstract class AbstractSourceJarMojo
     protected abstract List getResources( MavenProject p )
         throws MojoExecutionException;
 
+    /**
+     * @param p
+     * @return true to package the sources of the given project. false to skip.
+     * @throws MojoExecutionException
+     */
+    protected boolean doPackageSources( MavenProject p )
+        throws MojoExecutionException
+    {
+        return !"pom".equals( p.getPackaging() );
+    }
+    
     protected void packageSources( MavenProject p )
         throws MojoExecutionException
     {
-        if ( !"pom".equals( p.getPackaging() ) )
+        if ( doPackageSources( p ) )
         {
             packageSources( Arrays.asList( new Object[] { p } ) );
         }
@@ -251,7 +262,7 @@ public abstract class AbstractSourceJarMojo
         {
             MavenProject subProject = getProject( (MavenProject) i.next() );
 
-            if ( "pom".equals( subProject.getPackaging() ) )
+            if ( !doPackageSources( subProject ) )
             {
                 continue;
             }

@@ -66,6 +66,19 @@ public class OsgiSourceMojo extends AbstractSourceJarMojo {
      * @component role="org.codehaus.tycho.TychoProject"
      */
     private Map<String, TychoProject> projectTypes;
+    
+    /**
+     * Only apply this mojo to eclipse-plugin and eclipse-test-plugin projects
+     * @param p The current project
+     * @return true to package the sources of the given project. false to skip.
+     * @throws MojoExecutionException
+     */
+    protected boolean doPackageSources( MavenProject p )
+        throws MojoExecutionException {
+    	return p.getPackaging().equals(TychoProject.ECLIPSE_PLUGIN)
+    	    || p.getPackaging().equals(TychoProject.ECLIPSE_TEST_PLUGIN);
+    }
+
 
 	/** {@inheritDoc} */
 	@SuppressWarnings("unchecked")
