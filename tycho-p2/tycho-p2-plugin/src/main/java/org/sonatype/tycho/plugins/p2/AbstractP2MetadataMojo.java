@@ -1,6 +1,7 @@
 package org.sonatype.tycho.plugins.p2;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -27,7 +28,7 @@ public abstract class AbstractP2MetadataMojo
      * @parameter default-value="${project.name}"
      * @required
      */
-    private String metadataRepositoryName;
+    protected String metadataRepositoryName;
 
     /**
      * Generated update site location (must match update-site mojo configuration)
@@ -42,7 +43,7 @@ public abstract class AbstractP2MetadataMojo
      * @parameter default-value="${project.name} Artifacts"
      * @required
      */
-    private String artifactRepositoryName;
+    protected String artifactRepositoryName;
 
     /**
      * Kill the forked test process after a certain number of seconds. If set to 0, wait forever for the process, never
@@ -57,7 +58,7 @@ public abstract class AbstractP2MetadataMojo
      * 
      * @parameter
      */
-    private String argLine;
+    protected String argLine;
 
     /** 
      * @parameter default-value="true" 
@@ -111,24 +112,16 @@ public abstract class AbstractP2MetadataMojo
         cli.setExecutable( executable );
 
         cli.addArguments( new String[] { "-jar", getEquinoxLauncher().getCanonicalPath(), } );
-
-        cli.addArguments( new String[] { "-nosplash", // 
-            "-application", getPublisherApplication(), // 
-            "-source", getUpdateSiteLocation().getCanonicalPath(), //
-            "-metadataRepository", getUpdateSiteLocation().toURL().toExternalForm(), //
-            "-metadataRepositoryName", metadataRepositoryName, //
-            "-artifactRepository", getUpdateSiteLocation().toURL().toExternalForm(), //
-            "-artifactRepositoryName", artifactRepositoryName, //
-            "-noDefaultIUs", // 
-            } );
         
+        cli.addArguments( getDefaultPublisherArguments() );
+                
         String[] otherArgs = getOtherPublisherArguments();
         if (otherArgs != null && otherArgs.length > 0)
         {
         	cli.addArguments(otherArgs);
         }
         //last argument is traditionally for the vm:
-        cli.addArguments(new String[] {"-vmargs", argLine});
+        cli.addArguments(new String[] {"-vmargs", internalGetVmArgLine()});
         
         getLog().info( "Command line:\n\t" + cli.toString() );
 
@@ -156,11 +149,34 @@ public abstract class AbstractP2MetadataMojo
     }
     
     /**
+     * @return The vm arg line passed to the publisher app.
+     */
+    protected String internalGetVmArgLine()
+    {
+    	return argLine;
+    }
+    
+    protected String[] getDefaultPublisherArguments() throws IOException
+    {
+    	 return new String[] { "-nosplash", // 
+    	            "-application", getPublisherApplication(), // 
+    	            "-source", getSourceLocation().getCanonicalPath(), //
+    	            "-metadataRepository", getUpdateSiteLocation().toURL().toExternalForm(), //
+    	            "-metadataRepositoryName", metadataRepositoryName, //
+    	            "-artifactRepository", getUpdateSiteLocation().toURL().toExternalForm(), //
+    	            "-artifactRepositoryName", artifactRepositoryName, //
+    	            "-noDefaultIUs", //
+//    	    		"-console", "-consolelog"
+    	            };
+    }
+    
+    /**
      * By default returns null.
      * @return some more arguments added to the command line to invoke the publisher.
      * For example the product needs to be passed the config argument.
      */
-    protected String[] getOtherPublisherArguments() {
+    protected String[] getOtherPublisherArguments()
+    {
     	return null;
     }
 
@@ -169,6 +185,10 @@ public abstract class AbstractP2MetadataMojo
     protected File getUpdateSiteLocation()
     {
         return target;
+    }
+    
+    protected File getSourceLocation() {
+    	return target;
     }
 
     private File getEquinoxLauncher()

@@ -1,18 +1,27 @@
 package org.sonatype.tycho.plugins.p2;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.Properties;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
+import org.codehaus.plexus.util.FileUtils;
+import org.codehaus.plexus.util.io.RawInputStreamFacade;
 import org.codehaus.tycho.ArtifactDescription;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.TargetPlatform;
 import org.codehaus.tycho.TargetPlatformConfiguration;
 import org.codehaus.tycho.TychoConstants;
 import org.codehaus.tycho.TychoProject;
+import org.codehaus.tycho.model.ProductConfiguration;
 
 /**
  * See http://wiki.eclipse.org/Equinox/p2/Publisher#Product_Publisher
@@ -25,6 +34,7 @@ import org.codehaus.tycho.TychoProject;
 public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 	
 	public static String PRODUCT_PUBLISHER_APP_NAME = "org.eclipse.equinox.p2.publisher.ProductPublisher";
+	public static String PRODUCT_DIRECTOR_APP_NAME = "org.eclipse.equinox.p2.director";
 
     /** @parameter expression="${session}" */
     protected MavenSession session;
@@ -66,16 +76,47 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
      */
     private File expandedProductFile;
     
+	/**
+	 * The new profile to be created during p2 Director install & 
+	 * the default profile for the the application which is set in config.ini
+	 * 
+	 * @parameter expression="${profile}"
+	 */
+	private String profile;
+    
     private TargetEnvironment currentEnvironment;
 
+    private File currentRepository;
+    
+    /**
+     * Parsed product configuration file
+     */
+    private ProductConfiguration productConfiguration;
 
-
+    
     public void execute()
     	throws MojoExecutionException, MojoFailureException
     {
     	if (!separateEnvironments) {
     		return;//unsupported
     	}
+    	
+        if ( !expandedProductFile.exists() )
+        {
+            throw new MojoExecutionException( "Product configuration file not found "
+                + expandedProductFile.getAbsolutePath() );
+        }
+
+        try
+        {
+            getLog().debug( "Parsing productConfiguration" );
+            productConfiguration = ProductConfiguration.read( expandedProductFile );
+        }
+        catch ( IOException e )
+        {
+            throw new MojoExecutionException( "Error reading product configuration file", e );
+        }
+
     	
         for ( TargetEnvironment environment : getEnvironments() )
         {
@@ -90,19 +131,20 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
             
             currentTarget = targetEclipse;
             currentEnvironment = environment;
+            currentRepository = new File(target, toString(environment) + "_repository");
+            currentRepository.mkdirs();
             
-            //publish the features and bundles:
+            //Step-1 publish the features and bundles:
             //http://wiki.eclipse.org/Equinox/p2/Publisher#Features_And_Bundles_Publisher_Application
             currentPublisherApp = FeatureP2MetadataMojo.FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME;
             currentOtherArguments = new String[] {
             		"-configs", toString(environment),
             		"-compress",
-            		"-publishArtifacts",
-            		"-console", "-consolelog"
+            		"-publishArtifacts"
             };
             super.execute();
             
-            //now the product:
+            //Step-2 publish the product:
             //http://wiki.eclipse.org/Equinox/p2/Publisher#Product_Publisher
             currentPublisherApp = PRODUCT_PUBLISHER_APP_NAME;
             currentOtherArguments = new String[] {
@@ -111,15 +153,125 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
             		"-publishArtifacts",
             		"-executables", getEquinoxExecutableFeature(),
             		"-flavor", "tooling",
-            		"-configs", toString(environment),
-            		"-console", "-consolelog"
+            		"-configs", toString(environment)
             };
             super.execute();
+            
+            //Step-3 put it all together.
+            currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
+            super.execute();
+			regenerateCUs(environment);
+
         }
 
     }
+
+	private void regenerateCUs(TargetEnvironment environment)
+    throws MojoExecutionException, MojoFailureException
+	{
+		
+	    getLog().debug( "Regenerating config.ini" );
+	    Properties props = new Properties();
+	    String id = productConfiguration.getId();
+	    
+	    setPropertyIfNotNull(props, "osgi.bundles", getFeaturesOsgiBundles());
+	    // TODO check if there are any other levels
+	    setPropertyIfNotNull( props, "osgi.bundles.defaultStartLevel", "4" );
+	    if(profile == null){
+	    	profile = "profile";
+	    }
+	    setPropertyIfNotNull( props, "eclipse.p2.profile", profile);
+	    setPropertyIfNotNull( props, "eclipse.product", id );
+	    
+	    if ( id != null )
+	    {
+	        String splash = id.split( "\\." )[0];
+	        int lastDotIndex = id.lastIndexOf(".");
+	        if(lastDotIndex != -1){
+	        	splash = id.substring(0,lastDotIndex);
+	        }
+	        setPropertyIfNotNull( props, "osgi.splashPath", "platform:/base/plugins/" + splash );
+	    }
+	
+	    setPropertyIfNotNull( props, "eclipse.p2.data.area", "@config.dir/../p2/");
+	    setPropertyIfNotNull( props, "eclipse.application", productConfiguration.getApplication() );
+	    
+	   
+	    
+	
+	//    if ( productConfiguration.useFeatures() )
+	//    {
+	//        setPropertyIfNotNull( props, "osgi.bundles", getFeaturesOsgiBundles() );
+	//    }
+	//    else
+	//    {
+	//        setPropertyIfNotNull( props, "osgi.bundles", getPluginsOsgiBundles( environment ) );
+	//    }
+	   
+	
+	    File configsFolder = new File( currentTarget, "configuration" );
+	    configsFolder.mkdirs();
+	
+	    File configIni = new File( configsFolder, "config.ini" );
+	    try
+	    {
+	        FileOutputStream fos = new FileOutputStream( configIni );
+	        props.store( fos, "Product Runtime Configuration File" );
+	        fos.close();
+	    }
+	    catch ( IOException e )
+	    {
+	        throw new MojoExecutionException( "Error creating .eclipseproduct file.", e );
+	    }
+	
+	}
     
-    private String getEquinoxExecutableFeature() throws MojoExecutionException {
+    protected String[] getDefaultPublisherArguments() throws IOException
+    {
+    	if (currentPublisherApp.equals(PRODUCT_DIRECTOR_APP_NAME))
+    	{
+    		return new String[] {
+					"-nosplash", // 
+					"-application",	PRODUCT_DIRECTOR_APP_NAME, // 
+					"-installIU", productConfiguration.getId(),//
+					"-metadataRepository", getUpdateSiteLocation().toURI().toURL().toExternalForm(), //
+					"-artifactRepository", getUpdateSiteLocation().toURI().toURL().toExternalForm(), //
+					"-destination",	currentTarget.getCanonicalPath(),
+					"-profile",	profile != null ? profile : productConfiguration.getId(),
+					"-profileProperties",
+					"org.eclipse.update.install.features=true",
+					"-bundlepool", currentTarget.getCanonicalPath(),
+					"-p2.os", currentEnvironment.getOs(), 
+					"-p2.ws", currentEnvironment.getWs(),
+					"-p2.arch",	currentEnvironment.getArch(),
+					"-roaming", 
+    		};
+    	}
+    	return super.getDefaultPublisherArguments();
+    }
+    
+    
+    
+    
+    /**
+     * @return The vm arg line passed to the publisher app.
+     */
+    protected String internalGetVmArgLine()
+    {
+    	if (currentPublisherApp.equals(PRODUCT_DIRECTOR_APP_NAME))
+    	{
+    		return "-Declipse.p2.data.area="+currentTarget+"/p2/" + " " + argLine;
+    	}
+    	return argLine;
+    }
+    
+    
+    /**
+     * Same code than in the ProductExportMojo
+     * @return
+     * @throws MojoExecutionException
+     */
+    private String getEquinoxExecutableFeature() throws MojoExecutionException, MojoFailureException {
         ArtifactDescription artifact =
             getTargetPlatform().getArtifact( TychoProject.ECLIPSE_FEATURE, "org.eclipse.equinox.executable", null );
 
@@ -127,8 +279,53 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         {
             throw new MojoExecutionException( "Native launcher is not found for " + currentEnvironment.toString() );
         }
+        
+        File equinoxExecFeature = artifact.getLocation();
+        if (equinoxExecFeature.isDirectory())
+        {
+        	return equinoxExecFeature.getAbsolutePath();
+        }
+        else
+        {
+        	File unzipped = new File(project.getBuild().getOutputDirectory(),
+        			artifact.getKey().getId() + "-" + artifact.getKey().getVersion());
+        	if (unzipped.exists())
+        	{
+        		return unzipped.getAbsolutePath();
+        	}
+        	//unzip now then:
+        	ZipFile zip = null;
+            try
+            {
+            	zip = new ZipFile( equinoxExecFeature );
+                Enumeration<? extends ZipEntry> entries = zip.entries();
 
-        return artifact.getLocation().getAbsolutePath();
+                while ( entries.hasMoreElements() )
+                {
+                    ZipEntry entry = entries.nextElement();
+
+                    if ( entry.isDirectory() )
+                    {
+                        continue;
+                    }
+
+                    String name = entry.getName();
+
+                    File targetFile = new File( unzipped, name );
+                    targetFile.getParentFile().mkdirs();
+                    FileUtils.copyStreamToFile( new RawInputStreamFacade( zip.getInputStream( entry ) ), targetFile );
+                }
+                return unzipped.getAbsolutePath();
+            }
+            catch (IOException cause)
+            {
+            	throw new MojoFailureException("Unable to unzip the eqiuinox executable feature", cause);
+            }
+            finally
+            {
+                if (zip != null) try { zip.close(); } catch (IOException ioe) {}
+            }
+        }
     	
     	//on my machine:
     	//.m2/repository/p2/org/eclipse/update/feature/org.eclipse.equinox.executable/3.4.0.v20100505-7M7J8ZFIhIeyngAml28OC5/org.eclipse.equinox.executable-3.4.0.v20100505-7M7J8ZFIhIeyngAml28OC5.jar
@@ -145,12 +342,20 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     }
     
     /**
-     * @return the root folder of the product currently indexed.
+     * @return the root folder of repository.
      */
     @Override
     protected File getUpdateSiteLocation()
     {
-        return currentTarget;
+        return currentRepository;
+    }
+    /**
+     * @return the root folder of the product currently indexed.
+     */
+    @Override
+    protected File getSourceLocation()
+    {
+    	return currentTarget;
     }
     
     /**
@@ -158,11 +363,33 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
      * @return some more arguments added to the command line to invoke the publisher.
      * For example the product needs to be passed the config argument.
      */
-    protected String[] getOtherPublisherArguments() {
+    protected String[] getOtherPublisherArguments()
+    {
     	return currentOtherArguments;
     }
 
-    
+	private void setPropertyIfNotNull(Properties properties, String key, String value)
+	{
+		if (value != null)
+		{
+			properties.setProperty(key, value);
+		}
+	}
+	
+	/**
+	 * TODO: review this. It does not look right for a runtime app
+	 * @return
+	 */
+	private String getFeaturesOsgiBundles()
+	{
+		String bundles = "org.eclipse.equinox.common@2:start," +
+				"org.eclipse.update.configurator@3:start," +
+				"org.eclipse.core.runtime@start,org.eclipse.equinox.ds@1:start," +
+				"org.eclipse.equinox.simpleconfigurator@1:start" ;
+		return bundles;
+	}
+
+
 //duplicated from ProductExportMojo in the maven-osgi-packaging plugin    
     private List<TargetEnvironment> getEnvironments()
     {
