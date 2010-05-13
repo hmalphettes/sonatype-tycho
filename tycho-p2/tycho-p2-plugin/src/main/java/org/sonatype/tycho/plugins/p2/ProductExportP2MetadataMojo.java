@@ -159,6 +159,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
             
             //Step-3 put it all together.
             currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
+            currentOtherArguments = null;
             super.execute();
 			regenerateCUs(environment);
 
@@ -231,20 +232,20 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     	if (currentPublisherApp.equals(PRODUCT_DIRECTOR_APP_NAME))
     	{
     		return new String[] {
+					"-consoleLog", // 
 					"-nosplash", // 
 					"-application",	PRODUCT_DIRECTOR_APP_NAME, // 
 					"-installIU", productConfiguration.getId(),//
 					"-metadataRepository", getUpdateSiteLocation().toURI().toURL().toExternalForm(), //
 					"-artifactRepository", getUpdateSiteLocation().toURI().toURL().toExternalForm(), //
 					"-destination",	currentTarget.getCanonicalPath(),
-					"-profile",	profile != null ? profile : productConfiguration.getId(),
-					"-profileProperties",
-					"org.eclipse.update.install.features=true",
+					"-profile",	profile != null ? profile : "profile",//productConfiguration.getId(),
+					"-profileProperties", "org.eclipse.update.install.features=true",
 					"-bundlepool", currentTarget.getCanonicalPath(),
 					"-p2.os", currentEnvironment.getOs(), 
 					"-p2.ws", currentEnvironment.getWs(),
 					"-p2.arch",	currentEnvironment.getArch(),
-					"-roaming", 
+					"-roaming"
     		};
     	}
     	return super.getDefaultPublisherArguments();
@@ -260,7 +261,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     {
     	if (currentPublisherApp.equals(PRODUCT_DIRECTOR_APP_NAME))
     	{
-    		return "-Declipse.p2.data.area="+currentTarget+"/p2/" + " " + argLine;
+    		return "-Declipse.p2.data.area="+currentTarget+"/p2/" + (argLine != null ? " " + argLine : "");
     	}
     	return argLine;
     }
