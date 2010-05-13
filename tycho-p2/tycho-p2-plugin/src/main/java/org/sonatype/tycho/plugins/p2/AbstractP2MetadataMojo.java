@@ -120,8 +120,16 @@ public abstract class AbstractP2MetadataMojo
             "-artifactRepository", getUpdateSiteLocation().toURL().toExternalForm(), //
             "-artifactRepositoryName", artifactRepositoryName, //
             "-noDefaultIUs", // 
-            "-vmargs", argLine, } );
-
+            } );
+        
+        String[] otherArgs = getOtherPublisherArguments();
+        if (otherArgs != null && otherArgs.length > 0)
+        {
+        	cli.addArguments(otherArgs);
+        }
+        //last argument is traditionally for the vm:
+        cli.addArguments(new String[] {"-vmargs", argLine});
+        
         getLog().info( "Command line:\n\t" + cli.toString() );
 
         StreamConsumer out = new StreamConsumer()
@@ -146,10 +154,19 @@ public abstract class AbstractP2MetadataMojo
             throw new MojoFailureException( "P2 publisher return code was " + result );
         }
     }
+    
+    /**
+     * By default returns null.
+     * @return some more arguments added to the command line to invoke the publisher.
+     * For example the product needs to be passed the config argument.
+     */
+    protected String[] getOtherPublisherArguments() {
+    	return null;
+    }
 
     protected abstract String getPublisherApplication();
 
-    private File getUpdateSiteLocation()
+    protected File getUpdateSiteLocation()
     {
         return target;
     }
