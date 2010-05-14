@@ -64,6 +64,13 @@ public abstract class AbstractP2MetadataMojo
      * @parameter default-value="true" 
      */
     protected boolean generateP2Metadata;
+    
+    /**
+     * Enable outputting the logs of the p2 apps on the console.
+     * 
+     * @parameter expression="${p2.consoleLog}" default-value="false" 
+     */
+    private boolean p2ConsoleLog;
 
     /** @component */
     private EquinoxEmbedder p2;
@@ -99,7 +106,7 @@ public abstract class AbstractP2MetadataMojo
 
     private void generateMetadata()
         throws Exception
-    {
+    {   
         Commandline cli = new Commandline();
 
         cli.setWorkingDirectory( project.getBasedir() );
@@ -113,6 +120,10 @@ public abstract class AbstractP2MetadataMojo
 
         cli.addArguments( new String[] { "-jar", getEquinoxLauncher().getCanonicalPath(), } );
         
+        if ( p2ConsoleLog )
+        {
+        	cli.addArguments( new String[] { "-consoleLog" } );
+        }
         cli.addArguments( getDefaultPublisherArguments() );
                 
         String[] otherArgs = getOtherPublisherArguments();
@@ -121,7 +132,11 @@ public abstract class AbstractP2MetadataMojo
         	cli.addArguments(otherArgs);
         }
         //last argument is traditionally for the vm:
-        cli.addArguments(new String[] {"-vmargs", internalGetVmArgLine()});
+        String vmArg = internalGetVmArgLine();
+        if (vmArg != null && vmArg.length() != 0)
+        {
+        	cli.addArguments(new String[] {"-vmargs", internalGetVmArgLine()});
+        }
         
         getLog().info( "Command line:\n\t" + cli.toString() );
 

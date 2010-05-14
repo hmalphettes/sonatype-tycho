@@ -255,7 +255,6 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     	if (currentPublisherApp.equals(PRODUCT_DIRECTOR_APP_NAME))
     	{
     		return new String[] {
-					"-consoleLog", // 
 					"-nosplash", // 
 					"-application",	PRODUCT_DIRECTOR_APP_NAME, // 
 					"-installIU", productConfiguration.getId(),//
