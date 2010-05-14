@@ -161,7 +161,6 @@ public class ProductExportMojo
         if ( separateEnvironments )
         {
         	List<TargetEnvironment> environments = getEnvironments();
-        	project.setContextValue(PRODUCT_EXPORT_ENVIRONMENTS, environments);
             for ( TargetEnvironment environment : getEnvironments() )
             {
                 File target = getTarget( environment );

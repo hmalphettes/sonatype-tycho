@@ -36,7 +36,6 @@ public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
     private File expandedProductFile;
 
 
-
     public void execute() throws MojoExecutionException, MojoFailureException {
         if ( separateEnvironments )
         {
@@ -46,19 +45,21 @@ public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
 
                 if ( createProductArchive )
                 {
-                    createProductArchive( target, ProductExportMojo.toString( environment ) );
+                	String classifier = ProductExportMojo.toString( environment );
+                    File archive = createProductArchive( target, classifier );
+                    projectHelper.attachArtifact( project, archive, classifier );
                 }
             }
             project.getArtifact().setFile( expandedProductFile );
         }
         else
         {
-            File target = ProductExportMojo.getTarget( null, separateEnvironments, project );
-
-
             if ( createProductArchive )
             {
-                createProductArchive( target, null );
+                File target = ProductExportMojo.getTarget( null, separateEnvironments, project );
+                File archive = createProductArchive( target, null );
+                // main artifact
+    	        project.getArtifact().setFile( archive );
             }
             else
             {
@@ -69,8 +70,13 @@ public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
         
     }
     
-    
-    private void createProductArchive( File target, String classifier )
+    /**
+     * @param target
+     * @param classifier
+     * @return The generated zip.
+     * @throws MojoExecutionException
+     */
+    private File createProductArchive( File target, String classifier )
     throws MojoExecutionException
 	{
 	    ZipArchiver zipper;
@@ -102,16 +108,8 @@ public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
 	    {
 	        throw new MojoExecutionException( "Error packing product", e );
 	    }
-	
-	    if ( separateEnvironments )
-	    {
-	        projectHelper.attachArtifact( project, destFile, classifier );
-	    }
-	    else
-	    {
-	        // main artifact
-	        project.getArtifact().setFile( destFile );
-	    }
+	    
+	    return destFile;
 	}
 
     private List<TargetEnvironment> getEnvironments()
