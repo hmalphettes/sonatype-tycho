@@ -615,7 +615,7 @@ public class ProductExportMojo
     }
 
     /**
-     * Semi smart config.ini generator.
+     * Semi-smart generation of the osgi.bundle property for the config.ini file.
      * Looks into the configurations element of the product file where the plugins to start are listed.
      * <ol>
      * <li>if the parameter forceConfigIniOsgiBundlesListAll is set then for to
@@ -667,9 +667,26 @@ public class ProductExportMojo
                     new BundleConfiguration( "org.eclipse.equinox.simpleconfigurator", 1, true ) );
 		    }
         }
-        if (forceConfigIniOsgiBundlesListAll != null)
+        else
         {
+        	BundleConfiguration updateConfigurator = bundlesToStart.get("org.eclipse.update.configurator");
+        	BundleConfiguration simpleConfigurator = bundlesToStart.get("org.eclipse.equinox.simpleconfigurator");
+        	if ( (updateConfigurator != null && updateConfigurator.isAutoStart())
+        			|| (simpleConfigurator != null && simpleConfigurator.isAutoStart()) )
+        	{   //well known bundles in charge of installing the other bundles:
+        		//don't list all the bundles.
+        		if (forceConfigIniOsgiBundlesListAll == null) 
+    			{
+    				getLog().info("Not listing all bundles in osgi.bundles" +
+    						" as a configurator is part of the auto-started bundles.");
+    			}
+        		autoListAllBundles = false;
+        	}
+        }
+        if (forceConfigIniOsgiBundlesListAll != null)
+        {   //user gets to choose anyways.
         	autoListAllBundles = "true".equals(forceConfigIniOsgiBundlesListAll);
+        	getLog().debug((autoListAllBundles ? "Not listing" : "Listing") + " all bundles in osgi.bundles.");
         }
         if (!autoListAllBundles)
         {
