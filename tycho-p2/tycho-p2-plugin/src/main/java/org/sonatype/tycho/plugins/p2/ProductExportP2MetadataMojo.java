@@ -18,7 +18,6 @@ import org.codehaus.plexus.util.io.RawInputStreamFacade;
 import org.codehaus.tycho.ArtifactDescription;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.TargetPlatform;
-import org.codehaus.tycho.TargetPlatformConfiguration;
 import org.codehaus.tycho.TychoConstants;
 import org.codehaus.tycho.TychoProject;
 import org.codehaus.tycho.model.ProductConfiguration;
@@ -36,16 +35,24 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 	public static String PRODUCT_PUBLISHER_APP_NAME = "org.eclipse.equinox.p2.publisher.ProductPublisher";
 	public static String PRODUCT_DIRECTOR_APP_NAME = "org.eclipse.equinox.p2.director";
 
+//copied from ProductExportMojo	
+	/** key in the project context to easily access the environments. Contains List<TargetEnvironment> */
+	public static String PRODUCT_EXPORT_ENVIRONMENTS = TychoConstants.CTX_BASENAME + "/ProductExportMojo/environments";
+	/** key in the project context to easily access the expandedProductConfigurationFile */
+	public static String PRODUCT_EXPORT_EXPANDED_PRODUCT_CONFIGURATION_FILE = TychoConstants.CTX_BASENAME + "/ProductExportMojo/expandedProductConfigurationFile";
+	/** key in the project context to easily access if we build a single environment or not. Contains a Boolean. */
+	public static String PRODUCT_EXPORT_SEPARATE_ENVIRONMENTS = TychoConstants.CTX_BASENAME + "/ProductExportMojo/separateEnvironments";
+	/** key in the project context to easily access if we produce a p2 enable product. Contains a Boolean. */
+	public static String PRODUCT_EXPORT_ENABLE_P2 = TychoConstants.CTX_BASENAME + "/ProductExportMojo/enableP2";
+
     /** @parameter expression="${session}" */
     protected MavenSession session;
 
     /**
      * If true (the default), produce separate directory structure for each supported runtime environment.
-     * TODO: this should be read on the package product export configuration.
-     * 
-     * @parameter default-value="true"
+     * Read on the package product export configuration.
      */
-    private boolean separateEnvironments = true;
+    private Boolean separateEnvironments = null;
     
     /**
      * When execute iterates over each environment
@@ -70,9 +77,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     
     /**
      * Location of generated .product file with all versions replaced with their expanded values.
-     * TODO: read it from the ProductExportMojo
-     * 
-     * @parameter expression="${project.build.directory}/${project.artifactId}.product"
+     * Read it from the ProductExportMojo
      */
     private File expandedProductFile;
     
@@ -94,9 +99,20 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     private ProductConfiguration productConfiguration;
 
     
-    public void execute()
-    	throws MojoExecutionException, MojoFailureException
+    public void execute() throws MojoExecutionException, MojoFailureException
     {
+    	Boolean enableP2 = (Boolean)project.getContextValue(PRODUCT_EXPORT_ENABLE_P2);
+    	if (enableP2 == null) {
+    		throw new MojoFailureException("The mojo 'product-export' must be executed be for the mojo 'product-export-p2-metadata'" +
+    				" ");
+    	}
+    	if (!enableP2) {
+    		return;//nothing to do.
+    	}
+    	expandedProductFile = (File)project.getContextValue(PRODUCT_EXPORT_EXPANDED_PRODUCT_CONFIGURATION_FILE);
+    	separateEnvironments = (Boolean) project.getContextValue(PRODUCT_EXPORT_SEPARATE_ENVIRONMENTS);
+    	
+
     	if (!separateEnvironments) {
     		return;//unsupported
     	}
@@ -121,51 +137,58 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         for ( TargetEnvironment environment : getEnvironments() )
         {
             File target = getTarget( environment );
-            File targetEclipse = new File( target, "eclipse" );
-            
-            if (!targetEclipse.exists())
-            {
-            	throw new MojoFailureException("The folder '" + 
-            			targetEclipse.getAbsolutePath() + "' for the exported product does not exist.");
-            }
-            
-            currentTarget = targetEclipse;
-            currentEnvironment = environment;
-            currentRepository = new File(target, toString(environment) + "_repository");
-            currentRepository.mkdirs();
-            
-            //Step-1 publish the features and bundles:
-            //http://wiki.eclipse.org/Equinox/p2/Publisher#Features_And_Bundles_Publisher_Application
-            currentPublisherApp = FeatureP2MetadataMojo.FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME;
-            currentOtherArguments = new String[] {
-            		"-configs", toString(environment),
-            		"-compress",
-            		"-publishArtifacts"
-            };
-            super.execute();
-            
-            //Step-2 publish the product:
-            //http://wiki.eclipse.org/Equinox/p2/Publisher#Product_Publisher
-            currentPublisherApp = PRODUCT_PUBLISHER_APP_NAME;
-            currentOtherArguments = new String[] {
-            		"-productFile", expandedProductFile.getAbsolutePath(),
-            		"-append",
-            		"-publishArtifacts",
-            		"-executables", getEquinoxExecutableFeature(),
-            		"-flavor", "tooling",
-            		"-configs", toString(environment)
-            };
-            super.execute();
-            
-            //Step-3 put it all together.
-            currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
-            currentOtherArguments = null;
-            super.execute();
-			regenerateCUs(environment);
+            processOneEnvironment(target, environment);
 
         }
 
     }
+    
+    private void processOneEnvironment(File target, TargetEnvironment environment)
+    throws MojoExecutionException, MojoFailureException
+    {
+    	File targetEclipse = new File( target, "eclipse" );
+        if (!targetEclipse.exists())
+        {
+        	throw new MojoFailureException("The folder '" + 
+        			targetEclipse.getAbsolutePath() + "' for the exported product does not exist.");
+        }
+        
+        currentTarget = targetEclipse;
+        currentEnvironment = environment;
+        currentRepository = new File(project.getBuild().getDirectory(), toString(environment) + "_repository");
+        currentRepository.mkdirs();
+        
+        //Step-1 publish the features and bundles:
+        //http://wiki.eclipse.org/Equinox/p2/Publisher#Features_And_Bundles_Publisher_Application
+        currentPublisherApp = FeatureP2MetadataMojo.FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME;
+        currentOtherArguments = new String[] {
+        		"-configs", toString(environment),
+        		"-compress",
+        		"-publishArtifacts"
+        };
+        super.execute();
+        
+        //Step-2 publish the product:
+        //http://wiki.eclipse.org/Equinox/p2/Publisher#Product_Publisher
+        currentPublisherApp = PRODUCT_PUBLISHER_APP_NAME;
+        currentOtherArguments = new String[] {
+        		"-productFile", expandedProductFile.getAbsolutePath(),
+        		"-append",
+        		"-publishArtifacts",
+        		"-executables", getEquinoxExecutableFeature(),
+        		"-flavor", "tooling",
+        		"-configs", toString(environment)
+        };
+        super.execute();
+        
+        //Step-3 put it all together.
+        currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
+        currentOtherArguments = null;
+        super.execute();
+		regenerateCUs(environment);
+
+    }
+    
 
 	private void regenerateCUs(TargetEnvironment environment)
     throws MojoExecutionException, MojoFailureException
@@ -394,23 +417,9 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 //duplicated from ProductExportMojo in the maven-osgi-packaging plugin    
     private List<TargetEnvironment> getEnvironments()
     {
-        return getTargetPlatformConfiguration().getEnvironments();
+        return (List<TargetEnvironment>)project.getContextValue(PRODUCT_EXPORT_ENVIRONMENTS);
     }
 
-    protected TargetPlatformConfiguration getTargetPlatformConfiguration()
-    {
-        TargetPlatformConfiguration configuration =
-            (TargetPlatformConfiguration) project.getContextValue( TychoConstants.CTX_TARGET_PLATFORM_CONFIGURATION );
-
-        if ( configuration == null )
-        {
-            throw new IllegalStateException(
-                                             "Project build target platform configuration has not been initialized properly." );
-        }
-
-        return configuration;
-    }
-    
     private File getTarget( TargetEnvironment environment )
     {
         File target;

@@ -26,6 +26,7 @@ import java.util.zip.ZipFile;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.archiver.ArchiverException;
 import org.codehaus.plexus.archiver.util.ArchiveEntryUtils;
 import org.codehaus.plexus.archiver.zip.ZipArchiver;
@@ -55,6 +56,15 @@ import org.eclipse.pde.internal.swt.tools.IconExe;
 public class ProductExportMojo
     extends AbstractTychoPackagingMojo
 {
+	/** key in the project context to easily access the environments. Contains List<TargetEnvironment> */
+	public static String PRODUCT_EXPORT_ENVIRONMENTS = TychoConstants.CTX_BASENAME + "/ProductExportMojo/environments";
+	/** key in the project context to easily access the expandedProductConfigurationFile */
+	public static String PRODUCT_EXPORT_EXPANDED_PRODUCT_CONFIGURATION_FILE = TychoConstants.CTX_BASENAME + "/ProductExportMojo/expandedProductConfigurationFile";
+	/** key in the project context to easily access if we build a single environment or not. Contains a Boolean. */
+	public static String PRODUCT_EXPORT_SEPARATE_ENVIRONMENTS = TychoConstants.CTX_BASENAME + "/ProductExportMojo/separateEnvironments";
+	/** key in the project context to easily access if we produce a p2 enable product. Contains a Boolean. */
+	public static String PRODUCT_EXPORT_ENABLE_P2 = TychoConstants.CTX_BASENAME + "/ProductExportMojo/enableP2";
+	
     /**
      * The product configuration, a .product file. This file manages all aspects of a product definition from its
      * constituent plug-ins to configuration files to branding.
@@ -87,9 +97,9 @@ public class ProductExportMojo
     private TargetEnvironment[] environments;
 
     /**
-     * @parameter expression="${tycho.product.createArchive}" default-value="true"
+     * @parameter expression="${tycho.product.enableP2}" default-value="true"
      */
-    private boolean createProductArchive;
+    private boolean enableP2;
 
     /**
      * @parameter default-value="false"
@@ -102,6 +112,11 @@ public class ProductExportMojo
      * @parameter default-value="true"
      */
     private boolean separateEnvironments = true;
+
+    /**
+     * @parameter expression="${tycho.product.createArchive}" default-value="true"
+     */
+    private boolean createProductArchive;
 
     /**
      * If true, all included features and bundles will be packed. If false (the default), all features will be unpacked
@@ -141,9 +156,12 @@ public class ProductExportMojo
         {
             throw new MojoFailureException( "Product includes native launcher but no target environment was specified" );
         }
-
+        
+ 
         if ( separateEnvironments )
         {
+        	List<TargetEnvironment> environments = getEnvironments();
+        	project.setContextValue(PRODUCT_EXPORT_ENVIRONMENTS, environments);
             for ( TargetEnvironment environment : getEnvironments() )
             {
                 File target = getTarget( environment );
@@ -163,10 +181,6 @@ public class ProductExportMojo
                     copyExecutable( environment, targetEclipse );
                 }
 
-                if ( createProductArchive )
-                {
-                    createProductArchive( target, toString( environment ) );
-                }
             }
         }
         else
@@ -200,10 +214,6 @@ public class ProductExportMojo
                 }
             }
 
-            if ( createProductArchive )
-            {
-                createProductArchive( target, null );
-            }
         }
 
         // String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
@@ -224,10 +234,17 @@ public class ProductExportMojo
             throw new MojoExecutionException( "Error writing expanded product configuration file", e );
         }
 
-        if ( !createProductArchive || environments != null )
+        if ( !createProductArchive || environments != null || separateEnvironments )
         {
             project.getArtifact().setFile( expandedProductFile );
         }
+        
+        project.setContextValue(PRODUCT_EXPORT_ENVIRONMENTS, getEnvironments());
+        project.setContextValue(PRODUCT_EXPORT_ENABLE_P2, enableP2);
+        project.setContextValue(PRODUCT_EXPORT_EXPANDED_PRODUCT_CONFIGURATION_FILE, expandedProductFile);
+        project.setContextValue(PRODUCT_EXPORT_SEPARATE_ENVIRONMENTS, separateEnvironments);
+        
+        
     }
 
     private ArtifactDependencyWalker getDependencyWalker( TargetEnvironment environment )
@@ -263,6 +280,11 @@ public class ProductExportMojo
 
     private File getTarget( TargetEnvironment environment )
     {
+        return getTarget(environment, separateEnvironments, project);
+    }
+    
+    static File getTarget( TargetEnvironment environment, boolean separateEnvironments, MavenProject project )
+    {
         File target;
 
         if ( separateEnvironments )
@@ -279,7 +301,7 @@ public class ProductExportMojo
         return target;
     }
 
-    private String toString( TargetEnvironment environment )
+    static String toString( TargetEnvironment environment )
     {
         StringBuilder sb = new StringBuilder();
         sb.append( environment.getOs() ).append( '.' ).append( environment.getWs() ).append( '.' ).append(
