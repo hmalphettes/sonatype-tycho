@@ -100,6 +100,18 @@ public class ProductExportMojo
      * @parameter expression="${tycho.product.enableP2}" default-value="true"
      */
     private boolean enableP2;
+    
+    /**
+     * true to force the generation of osgi.bundle in config.ini that contains
+     * all of the bundles.
+     * false to prevent it.
+     * When undefined, automatically decide based on the product file.
+     * 
+     * @parameter
+     */
+    private String forceConfigIniOsgiBundlesListAll;
+
+
 
     /**
      * @parameter default-value="false"
@@ -528,9 +540,43 @@ public class ProductExportMojo
         }
     }
 
+    /**
+     * Generate a new default config.ini file or use the custom one specified in the environment.
+     * (TYCHO-422).
+     * @param environment The current environment or null for a non environment specific packaging.
+     * @param target The eclipse folder assembled.
+     */
     private void generateConfigIni( TargetEnvironment environment, File target )
         throws MojoExecutionException, MojoFailureException
     {
+    	String os = environment == null ? null : environment.getOs();
+    	String customConfigIni = os != null ? productConfiguration.getConfigIni(os) : null;
+    	if (customConfigIni != null && customConfigIni.length() > 0)
+    	{
+    		getLog().debug( "Using " + customConfigIni );
+    		if (customConfigIni.charAt(0) == '/')
+    		{
+    			//relative path to the project.
+    			customConfigIni = customConfigIni.substring(1);
+    		}
+    		File customIniF = new File(project.getBasedir(), customConfigIni);
+    		if (!customIniF.exists())
+    		{
+    			throw new MojoFailureException("Unable to locate the custom config.ini for " + os
+    					+ " that should be located at " + customIniF.getAbsolutePath());
+    		}
+    		File configsFolder = new File( target, "configuration" );
+            configsFolder.mkdirs();
+    		File destConfigIni = new File(configsFolder, "config.ini");
+            try {
+				FileUtils.copyFile(customIniF, destConfigIni);
+			} catch (IOException e) {
+				throw new MojoFailureException("Unable to copy the custom config.ini for " + os
+    					+ " that located at " + customIniF.getAbsolutePath(), e);
+			}
+    		return;
+    	}
+    	
         getLog().debug( "Generating config.ini" );
         Properties props = new Properties();
         String id = productConfiguration.getProduct();
@@ -539,6 +585,13 @@ public class ProductExportMojo
             String splash = id.split( "\\." )[0];
             setPropertyIfNotNull( props, "osgi.splashPath", "platform:/base/plugins/" + splash );
         }
+    	//when there is no application
+    	//add the proper parameters for this runtime application:
+    	if ( productConfiguration.getApplication() == null )
+    	{
+    		setPropertyIfNotNull( props, "eclipse.ignoreApp", "true" );
+    		setPropertyIfNotNull( props, "osgi.noShutdown", "true" );
+    	}
 
         setPropertyIfNotNull( props, "eclipse.product", id );
         // TODO check if there are any other levels
@@ -561,26 +614,80 @@ public class ProductExportMojo
         }
     }
 
+    /**
+     * Semi smart config.ini generator.
+     * Looks into the configurations element of the product file where the plugins to start are listed.
+     * <ol>
+     * <li>if the parameter forceConfigIniOsgiBundlesListAll is set then for to
+     *  generate or not generate the whole list. otherwise: </li>
+     * <li>If there is no such thing at all (for example tycho-runtime product file) then osgi.bundle is the list
+     * of all bundles packaged in the product with auto started if preset:
+     * org.eclipse.equinox.common, org.eclipse.update.configurator, org.eclipse.core.runtime,
+     * org.eclipse.equinox.simpleconfigurator, org.eclipse.equinox.ds</li>
+     * <li>If there is a list of bundles to autostart and org.eclipse.update.configurator belongs to them
+     * or org.eclipse.equinox.simpleconfigurator is one of them, then don't list all the p2 bundles.</li>
+     * </ol>
+     */
     private void generateOSGiBundles( Properties props, TargetEnvironment environment )
         throws MojoFailureException
     {
         Map<String, BundleConfiguration> bundlesToStart = productConfiguration.getPluginConfiguration();
-
-        if ( bundlesToStart == null )
-        {
-            bundlesToStart = new HashMap<String, BundleConfiguration>();
-
-            // This is the wellknown set of bundles for Eclipse based application for 3.3 and 3.4 without p2
-            bundlesToStart.put( "org.eclipse.equinox.common", // 
-                                new BundleConfiguration( "org.eclipse.equinox.common", 2, true ) );
-            bundlesToStart.put( "org.eclipse.update.configurator", //
-                                new BundleConfiguration( "org.eclipse.update.configurator", 3, true ) );
-            bundlesToStart.put( "org.eclipse.core.runtime", // 
-                                new BundleConfiguration( "org.eclipse.core.runtime", -1, true ) );
-        }
-
         Map<String, PluginDescription> bundles =
             new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
+
+        boolean autoListAllBundles = false;
+        if ( bundlesToStart == null || bundlesToStart.isEmpty() )
+        {
+        	autoListAllBundles = true;
+            bundlesToStart = new HashMap<String, BundleConfiguration>();
+
+            // This is the well known set of bundles for Eclipse based RCP application for 3.3 till 3.6 without p2
+        	//if we see the p2's simpleconfigurator then we add it and that makes it work for p2 (should)
+    		bundlesToStart.put( "org.eclipse.equinox.common", // 
+		                        new BundleConfiguration( "org.eclipse.equinox.common", 2, true ) );
+    		if (bundles.containsKey("org.eclipse.update.configurator"))
+		    {
+		    	bundlesToStart.put( "org.eclipse.update.configurator", //
+		                        new BundleConfiguration( "org.eclipse.update.configurator", 3, true ) );
+		    	autoListAllBundles = false;
+		    }
+		    if (bundles.containsKey("org.eclipse.core.runtime"))
+		    {
+		    	bundlesToStart.put( "org.eclipse.core.runtime", // 
+                    new BundleConfiguration( "org.eclipse.core.runtime", -1, true ) );
+		    }
+		    if (bundles.containsKey("org.eclipse.equinox.ds"))
+		    {
+		    	bundlesToStart.put( "org.eclipse.equinox.ds", // 
+                    new BundleConfiguration( "org.eclipse.equinox.ds", 1, true ) );
+		    }
+		    if (bundles.containsKey("org.eclipse.equinox.simpleconfigurator"))
+		    {
+		    	bundlesToStart.put( "org.eclipse.equinox.simpleconfigurator", // 
+                    new BundleConfiguration( "org.eclipse.equinox.simpleconfigurator", 1, true ) );
+		    }
+        }
+        if (forceConfigIniOsgiBundlesListAll != null)
+        {
+        	autoListAllBundles = "true".equals(forceConfigIniOsgiBundlesListAll);
+        }
+        if (!autoListAllBundles)
+        {
+        	//only list the bundles explicitly declared in the product file's configuration element:
+        	Map<String, PluginDescription> actualListedBundles = new LinkedHashMap<String, PluginDescription>();
+        	for (BundleConfiguration bundleConf : bundlesToStart.values())
+        	{
+        		PluginDescription pluginDesc = bundles.get(bundleConf.getId());
+        		if (pluginDesc == null)
+        		{
+        			throw new MojoFailureException("No plugin " + bundleConf.getId() + 
+        					" is packaged by the product " + productConfiguration.getId() +
+        					" although it is listed in the plugins to start.");
+        		}
+        		actualListedBundles.put(pluginDesc.getKey().getId(), pluginDesc);
+        	}
+        	bundles = actualListedBundles;
+        }
 
         StringBuilder osgiBundles = new StringBuilder();
         for ( PluginDescription plugin : bundles.values() )

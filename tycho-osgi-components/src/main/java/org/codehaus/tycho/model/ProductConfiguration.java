@@ -13,6 +13,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -234,7 +235,7 @@ public class ProductConfiguration
             return null;
         }
 
-        Map<String, BundleConfiguration> configs = new HashMap<String, BundleConfiguration>();
+        Map<String, BundleConfiguration> configs = new LinkedHashMap<String, BundleConfiguration>();
         for ( Element pluginDom : configurationsDom.getChildren( "plugin" ) )
         {
             configs.put( pluginDom.getAttributeValue( "id" ), new BundleConfiguration( pluginDom ) );
@@ -256,5 +257,71 @@ public class ProductConfiguration
             return null;
         }
         return linux.getAttributeValue( "icon" );
+    }
+    
+    /**
+     * Return the value of /configIni/$platform/text() or null if there is no such element.
+     * @param platform (aka OS) According to the PDE UI for the product file,
+     * it should be one of 'linux', 'macosx', 'solaris', 'win32'
+     * however any string is accepted here. 
+     * @return The path to the config file. According to the PDE UI it is an
+     * absolute path where the root is the project.
+     */
+    public String getConfigIni(String platform)
+    {
+    	Element configIni = dom.getChild("configIni");
+    	if (configIni == null)
+    	{
+    		return null;
+    	}
+    	Element platIni = dom.getChild(platform);
+    	if (platIni == null)
+    	{
+    		return null;
+    	}
+    	return platIni.getText();
+    }
+    
+    /**
+     * @param platform (aka OS) or null for the arguments that apply to all platforms.
+     * @return the launcher argument for the VM
+     */
+    private String getLauncherArgs(String platform, boolean forVM)
+    {
+    	Element launcherArgs = dom.getChild("launcherArgs");
+    	if (launcherArgs == null)
+    	{
+    		return null;
+    	}
+    	String elemName = forVM ? "vmArgs" : "programArgs";
+    	if (platform != null && platform.length() < 2)
+    	{
+    		elemName += Character.toUpperCase(platform.charAt(0)) + platform.substring(1);
+    	}
+    	Element programArgs = dom.getChild(elemName);
+    	return programArgs != null ? programArgs.getText() : null;
+    	
+    }
+    /**
+     * Return the value of /launcherArgs/name()[concat('vmArgs',$platform)]/text()
+     * or null if there is no such element.
+     * 
+     * @param platform (aka OS) or null for the arguments that apply to all platforms.
+     * @return the launcher argument for the VM
+     */
+    public String getLauncherArgsForVM(String platform)
+    {
+    	return getLauncherArgs(platform, true);
+    }
+    /**
+     * Return the value of /launcherArgs/name()[concat('programArgs',$platform)]/text() 
+     * or null if there is no such element.
+     * 
+     * @param platform (aka OS) or null for the arguments that apply to all platforms.
+     * @return the launcher argument for the program
+     */
+    public String getLauncherArgsForProgram(String platform)
+    {
+    	return getLauncherArgs(platform, false);
     }
 }

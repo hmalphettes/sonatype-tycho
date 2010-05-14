@@ -185,7 +185,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
         currentOtherArguments = null;
         super.execute();
-		regenerateCUs(environment);
+//		regenerateCUs(environment);
 
     }
     
@@ -400,7 +400,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 	}
 	
 	/**
-	 * TODO: review this. It does not look right for a runtime app
+	 * TODO: review this. It does not look right for a runtime app where there is no org.eclipse.core.runtime
 	 * @return
 	 */
 	private String getFeaturesOsgiBundles()
