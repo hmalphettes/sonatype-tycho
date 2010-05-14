@@ -17,11 +17,12 @@ public class BundleConfiguration
         configuration = pluginDom;
     }
 
-    public BundleConfiguration( String id, int startLevel, boolean autoStart )
+    public BundleConfiguration( String id, int startLevel, Boolean autoStart )
     {
         this.configuration = new Element( "plugin" );
-
-        setAutoStart( autoStart );
+        setStartLevel(startLevel);
+        setId(id);
+        if (autoStart != null) setAutoStart( autoStart );
     }
 
     public boolean isAutoStart()
@@ -41,6 +42,7 @@ public class BundleConfiguration
 
     public void setId( String id )
     {
+    	if (id == null) throw new RuntimeException("Invalid bundle element: the id attribute is undefined");
         configuration.setAttribute( "id", id );
     }
 
@@ -56,6 +58,9 @@ public class BundleConfiguration
 
     public void setStartLevel( int startLevel )
     {
-        configuration.setAttribute( "startLevel", startLevel != NO_STARTLEVEL ? Integer.toString( startLevel ) : null );
+    	if (startLevel != NO_STARTLEVEL)
+    	{
+    		configuration.setAttribute( "startLevel", Integer.toString( startLevel ) );
+    	}
     }
 }
