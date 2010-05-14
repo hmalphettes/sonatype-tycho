@@ -74,6 +74,7 @@
             <phases>
               <package>
                 org.sonatype.tycho:maven-osgi-packaging-plugin:${project.version}:product-export
+                org.sonatype.tycho:maven-osgi-packaging-plugin:${project.version}:product-export-packaging
               </package>
               <install>
                 org.apache.maven.plugins:maven-install-plugin:install

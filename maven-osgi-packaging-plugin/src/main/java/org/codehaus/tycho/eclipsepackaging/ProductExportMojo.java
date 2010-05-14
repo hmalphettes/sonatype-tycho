@@ -233,11 +233,6 @@ public class ProductExportMojo
         {
             throw new MojoExecutionException( "Error writing expanded product configuration file", e );
         }
-
-        if ( !createProductArchive || environments != null || separateEnvironments )
-        {
-            project.getArtifact().setFile( expandedProductFile );
-        }
         
         project.setContextValue(PRODUCT_EXPORT_ENVIRONMENTS, getEnvironments());
         project.setContextValue(PRODUCT_EXPORT_ENABLE_P2, enableP2);

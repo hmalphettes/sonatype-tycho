@@ -1,13 +1,10 @@
 package org.codehaus.tycho.eclipsepackaging;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.archiver.zip.ZipArchiver;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.codehaus.tycho.TargetEnvironment;
@@ -15,7 +12,6 @@ import org.codehaus.tycho.TargetPlatformConfiguration;
 import org.codehaus.tycho.TychoConstants;
 
 /**
- * TODO. right now it does nothing. first make the p2 stuff work.
  * @goal product-export-packaging
  */
 public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
@@ -31,6 +27,15 @@ public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
      * @parameter default-value="true"
      */
     private boolean separateEnvironments = true;
+    
+    /**
+     * Location of generated .product file with all versions replaced with their expanded values.
+     * 
+     * @parameter expression="${project.build.directory}/${project.artifactId}.product"
+     */
+    private File expandedProductFile;
+
+
 
     public void execute() throws MojoExecutionException, MojoFailureException {
         if ( separateEnvironments )
@@ -44,6 +49,7 @@ public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
                     createProductArchive( target, ProductExportMojo.toString( environment ) );
                 }
             }
+            project.getArtifact().setFile( expandedProductFile );
         }
         else
         {
@@ -54,9 +60,13 @@ public class PackageProductExportMojo extends AbstractTychoPackagingMojo {
             {
                 createProductArchive( target, null );
             }
+            else
+            {
+            	project.getArtifact().setFile( expandedProductFile );
+            }
             
         }
-
+        
     }
     
     
