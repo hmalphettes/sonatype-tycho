@@ -100,7 +100,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 
     
     public void execute() throws MojoExecutionException, MojoFailureException
-    {
+    {	
     	Boolean enableP2 = (Boolean)project.getContextValue(PRODUCT_EXPORT_ENABLE_P2);
     	if (enableP2 == null) {
     		throw new MojoFailureException("The mojo 'product-export' must be executed be for the mojo 'product-export-p2-metadata'" +
@@ -122,6 +122,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
             throw new MojoExecutionException( "Product configuration file not found "
                 + expandedProductFile.getAbsolutePath() );
         }
+    	computeProfile();
 
         try
         {
@@ -185,70 +186,40 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
         currentOtherArguments = null;
         super.execute();
-//		regenerateCUs(environment);
         
     }
     
+    private void computeProfile()
+    {
+	    if ( profile == null )
+	    {
+	    	//let's do something a bit nicer:
+	    	//the last segment of the product id. unless it is 'product'
+	    	String productId = productConfiguration.getId();
+	    	String[] segs = productId.split(".");
+	    	for (int i = segs.length -1; i >= 0; i--)
+	    	{
+	    		if (segs[i].toLowerCase().indexOf("prod") == -1)
+	    		{
+	    			if (i > 0 && segs[i].toLowerCase().equals("sdk"))
+	    			{
+	    				profile = segs[i-1] + "SDK";
+	    				break;
+	    			}
+	    			else
+	    			{
+	    				profile = segs[i];
+	    				break;
+	    			}
+	    		}
+	    	}
+	    	if (profile == null)
+	    	{
+	    		profile = "profile";
+	    	}
+	    }
 
-	private void regenerateCUs(TargetEnvironment environment)
-    throws MojoExecutionException, MojoFailureException
-	{
-		
-	    getLog().debug( "Regenerating config.ini" );
-	    Properties props = new Properties();
-	    String id = productConfiguration.getId();
-	    
-	    setPropertyIfNotNull(props, "osgi.bundles", getFeaturesOsgiBundles());
-	    // TODO check if there are any other levels
-	    setPropertyIfNotNull( props, "osgi.bundles.defaultStartLevel", "4" );
-	    if(profile == null){
-	    	profile = "profile";
-	    }
-	    setPropertyIfNotNull( props, "eclipse.p2.profile", profile);
-	    setPropertyIfNotNull( props, "eclipse.product", id );
-	    
-	    if ( id != null )
-	    {
-	        String splash = id.split( "\\." )[0];
-	        int lastDotIndex = id.lastIndexOf(".");
-	        if(lastDotIndex != -1){
-	        	splash = id.substring(0,lastDotIndex);
-	        }
-	        setPropertyIfNotNull( props, "osgi.splashPath", "platform:/base/plugins/" + splash );
-	    }
-	
-	    setPropertyIfNotNull( props, "eclipse.p2.data.area", "@config.dir/../p2/");
-	    setPropertyIfNotNull( props, "eclipse.application", productConfiguration.getApplication() );
-	    
-	   
-	    
-	
-	//    if ( productConfiguration.useFeatures() )
-	//    {
-	//        setPropertyIfNotNull( props, "osgi.bundles", getFeaturesOsgiBundles() );
-	//    }
-	//    else
-	//    {
-	//        setPropertyIfNotNull( props, "osgi.bundles", getPluginsOsgiBundles( environment ) );
-	//    }
-	   
-	
-	    File configsFolder = new File( currentTarget, "configuration" );
-	    configsFolder.mkdirs();
-	
-	    File configIni = new File( configsFolder, "config.ini" );
-	    try
-	    {
-	        FileOutputStream fos = new FileOutputStream( configIni );
-	        props.store( fos, "Product Runtime Configuration File" );
-	        fos.close();
-	    }
-	    catch ( IOException e )
-	    {
-	        throw new MojoExecutionException( "Error creating .eclipseproduct file.", e );
-	    }
-	
-	}
+    }
     
     protected String[] getDefaultPublisherArguments() throws IOException
     {

@@ -2,6 +2,7 @@ package org.codehaus.tycho.eclipsepackaging;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -9,6 +10,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Enumeration;
@@ -182,6 +184,7 @@ public class ProductExportMojo
 
                 generateDotEclipseProduct( targetEclipse );
                 generateConfigIni( environment, targetEclipse );
+                generateLauncherIni( environment, targetEclipse );
                 includeRootFiles( environment, targetEclipse );
 
                 ProductAssembler assembler = new ProductAssembler( session, manifestReader, targetEclipse, environment );
@@ -552,12 +555,55 @@ public class ProductExportMojo
     throws MojoExecutionException, MojoFailureException
     {
     	String os = environment == null ? null : environment.getOs();
+    	String launcherName = productConfiguration.getLauncher() != null
+    		? productConfiguration.getLauncher().getName() : null;
+    	if (launcherName == null)
+    	{
+    		return;
+    	}
+    	if (launcherName.length() == 0)
+    	{
+    		launcherName = "eclipse";
+    	}
     	String allProgArgs = productConfiguration.getLauncherArgsForProgram(null);
     	String osProgArgs = os != null ? productConfiguration.getLauncherArgsForProgram(os) : null;
     	String allVmArgs = productConfiguration.getLauncherArgsForProgram(null);
     	String osVmArgs = os != null ? productConfiguration.getLauncherArgsForProgram(os) : null;
-    	StringBuilder sb = new StringBuilder();
     	
+    	if (allProgArgs != null || osProgArgs != null || allVmArgs != null || osVmArgs != null)
+    	{
+    		File launcherIni = new File(target, launcherName + ".ini");
+    		BufferedWriter writer = null;
+    		try {
+    			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(launcherIni), "UTF-8"));
+    			//TODO: output the other arguments that we can live without? -startup and --startup-library ?
+    			writeArgLine(allProgArgs, writer);
+    			writeArgLine(osProgArgs, writer);
+    			if (allVmArgs != null || osVmArgs != null) writeArgLine("-vmargs", writer);
+    			writeArgLine(allVmArgs, writer);
+    			writeArgLine(osVmArgs, writer);
+    				
+    		}
+    		catch (IOException e)
+    		{
+    			throw new MojoExecutionException("Unable to output the " + launcherIni.getName() + " file", e);
+    		}
+    		finally
+    		{
+    			if (writer != null) IOUtil.close(writer);
+    		}
+    	}
+    	
+    }
+    
+    private void writeArgLine(String line, BufferedWriter writer) throws IOException
+    {
+    	if (line == null || line.length() != 0)
+		{
+			return;
+		}
+    	writer.append(line);
+    	writer.newLine();
     }
 
     /**
