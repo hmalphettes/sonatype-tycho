@@ -181,12 +181,12 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         };
         super.execute();
         
-        //Step-3 put it all together.
+        //Step-3 invoke director to install the repo.
         currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
         currentOtherArguments = null;
         super.execute();
 //		regenerateCUs(environment);
-
+        
     }
     
 

@@ -44,6 +44,7 @@ import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.TargetPlatformConfiguration;
 import org.codehaus.tycho.TychoConstants;
 import org.codehaus.tycho.TychoProject;
+import org.codehaus.tycho.eclipsepackaging.simpleconfigurator.BundlesInfoHelper;
 import org.codehaus.tycho.model.BundleConfiguration;
 import org.codehaus.tycho.model.ProductConfiguration;
 import org.codehaus.tycho.osgitools.BundleReader;
@@ -539,6 +540,25 @@ public class ProductExportMojo
             throw new MojoExecutionException( "Error creating .eclipseproduct file.", e );
         }
     }
+    
+    /**
+     * transforms the launcherArgs element in the product file into a $launcher.ini file.
+     * @param environment
+     * @param target
+     * @throws MojoExecutionException
+     * @throws MojoFailureException
+     */
+    private void generateLauncherIni( TargetEnvironment environment, File target )
+    throws MojoExecutionException, MojoFailureException
+    {
+    	String os = environment == null ? null : environment.getOs();
+    	String allProgArgs = productConfiguration.getLauncherArgsForProgram(null);
+    	String osProgArgs = os != null ? productConfiguration.getLauncherArgsForProgram(os) : null;
+    	String allVmArgs = productConfiguration.getLauncherArgsForProgram(null);
+    	String osVmArgs = os != null ? productConfiguration.getLauncherArgsForProgram(os) : null;
+    	StringBuilder sb = new StringBuilder();
+    	
+    }
 
     /**
      * Generate a new default config.ini file or use the custom one specified in the environment.
@@ -574,6 +594,36 @@ public class ProductExportMojo
 				throw new MojoFailureException("Unable to copy the custom config.ini for " + os
     					+ " that located at " + customIniF.getAbsolutePath(), e);
 			}
+			
+			//generate the bundles.info file is needed:
+			Properties customConfig = new Properties();
+			InputStream in = null;
+			try
+			{
+				in = new BufferedInputStream(new FileInputStream(destConfigIni));
+				customConfig.load(in);
+				String simpleconfiguratorInitUrl = (String)customConfig.get("org.eclipse.equinox.simpleconfigurator.configUrl");
+				if (simpleconfiguratorInitUrl != null)
+				{
+					//aha! let's generate the bundles.info
+					File bundlesInfo = new File(configsFolder, simpleconfiguratorInitUrl);
+					
+					//TODO: read those from the config.ini (?) instead of the product file (?)
+			        Map<String, BundleConfiguration> bundlesToStart = productConfiguration.getPluginConfiguration();
+			        Map<String, PluginDescription> bundles =
+			            new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
+		        	BundlesInfoHelper.writeBundlesInfo(bundlesToStart, bundles, bundlesInfo);
+				}
+			}
+			catch (IOException io)
+			{
+				throw new MojoFailureException("Invalid config.ini file " + 
+						customIniF.getAbsolutePath() + ": could not load it as properties.", io);
+			}
+			finally
+			{
+				if (in != null) IOUtil.close(in);
+			}
     		return;
     	}
     	
@@ -597,9 +647,9 @@ public class ProductExportMojo
         // TODO check if there are any other levels
         setPropertyIfNotNull( props, "osgi.bundles.defaultStartLevel", "4" );
 
-        generateOSGiBundles( props, environment );
         File configsFolder = new File( target, "configuration" );
         configsFolder.mkdirs();
+        generateOSGiBundles( props, environment, configsFolder );
 
         File configIni = new File( configsFolder, "config.ini" );
         try
@@ -628,14 +678,15 @@ public class ProductExportMojo
      * or org.eclipse.equinox.simpleconfigurator is one of them, then don't list all the p2 bundles.</li>
      * </ol>
      */
-    private void generateOSGiBundles( Properties props, TargetEnvironment environment )
-        throws MojoFailureException
+    private void generateOSGiBundles( Properties props, TargetEnvironment environment, File configurationFolder )
+        throws MojoFailureException, MojoExecutionException
     {
         Map<String, BundleConfiguration> bundlesToStart = productConfiguration.getPluginConfiguration();
         Map<String, PluginDescription> bundles =
             new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
 
         boolean autoListAllBundles = false;
+        boolean isUsingSimpleConfigurator = false;
         if ( bundlesToStart == null || bundlesToStart.isEmpty() )
         {
         	autoListAllBundles = true;
@@ -663,6 +714,7 @@ public class ProductExportMojo
 		    }
 		    if (bundles.containsKey("org.eclipse.equinox.simpleconfigurator"))
 		    {
+		    	//for now we choose to not consider that simpleconfigurator is actually in use
 		    	bundlesToStart.put( "org.eclipse.equinox.simpleconfigurator", // 
                     new BundleConfiguration( "org.eclipse.equinox.simpleconfigurator", 1, true ) );
 		    }
@@ -671,6 +723,7 @@ public class ProductExportMojo
         {
         	BundleConfiguration updateConfigurator = bundlesToStart.get("org.eclipse.update.configurator");
         	BundleConfiguration simpleConfigurator = bundlesToStart.get("org.eclipse.equinox.simpleconfigurator");
+        	isUsingSimpleConfigurator = simpleConfigurator != null && simpleConfigurator.isAutoStart() && simpleConfigurator.getStartLevel() == 1;
         	if ( (updateConfigurator != null && updateConfigurator.isAutoStart())
         			|| (simpleConfigurator != null && simpleConfigurator.isAutoStart()) )
         	{   //well known bundles in charge of installing the other bundles:
@@ -686,12 +739,27 @@ public class ProductExportMojo
         if (forceConfigIniOsgiBundlesListAll != null)
         {   //user gets to choose anyways.
         	autoListAllBundles = "true".equals(forceConfigIniOsgiBundlesListAll);
-        	getLog().debug((autoListAllBundles ? "Not listing" : "Listing") + " all bundles in osgi.bundles.");
+        	getLog().info((autoListAllBundles ? "Not listing" : "Listing") + " all bundles in osgi.bundles.");
         }
+        
+        if (isUsingSimpleConfigurator)
+        {
+        	//in that case a single plugin is autostarted
+        	//and everything else is generated in the bundles.info file.
+        	//osgi.bundles=reference\:file\:org.eclipse.equinox.simpleconfigurator_1.0.200.v20100416.jar@1\:start
+        	//org.eclipse.equinox.simpleconfigurator.configUrl=file\:org.eclipse.equinox.simpleconfigurator/bundles.info
+        	setPropertyIfNotNull( props, "osgi.bundles", "org.eclipse.equinox.simpleconfigurator@start" );
+        	setPropertyIfNotNull( props, "org.eclipse.equinox.simpleconfigurator.configUrl",
+        				"file\\:org.eclipse.equinox.simpleconfigurator/bundles.info");
+        	File bundlesInfo = new File(configurationFolder, "org.eclipse.equinox.simpleconfigurator/bundles.info");
+        	BundlesInfoHelper.writeBundlesInfo(bundlesToStart, bundles, bundlesInfo);
+        	return;
+        }
+        
         if (!autoListAllBundles)
         {
         	//only list the bundles explicitly declared in the product file's configuration element:
-        	Map<String, PluginDescription> actualListedBundles = new LinkedHashMap<String, PluginDescription>();
+        	Map<String, PluginDescription> actuallyListedBundles = new LinkedHashMap<String, PluginDescription>();
         	for (BundleConfiguration bundleConf : bundlesToStart.values())
         	{
         		PluginDescription pluginDesc = bundles.get(bundleConf.getId());
@@ -701,9 +769,9 @@ public class ProductExportMojo
         					" is packaged by the product " + productConfiguration.getId() +
         					" although it is listed in the plugins to start.");
         		}
-        		actualListedBundles.put(pluginDesc.getKey().getId(), pluginDesc);
+        		actuallyListedBundles.put(pluginDesc.getKey().getId(), pluginDesc);
         	}
-        	bundles = actualListedBundles;
+        	bundles = actuallyListedBundles;
         }
 
         StringBuilder osgiBundles = new StringBuilder();
