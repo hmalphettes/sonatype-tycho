@@ -183,13 +183,14 @@ public class ProductExportMojo
                 targetEclipse.mkdirs();
 
                 generateDotEclipseProduct( targetEclipse );
-                generateConfigIni( environment, targetEclipse );
-                generateLauncherIni( environment, targetEclipse );
                 includeRootFiles( environment, targetEclipse );
 
                 ProductAssembler assembler = new ProductAssembler( session, manifestReader, targetEclipse, environment );
                 assembler.setIncludeSources( includeSources );
                 getDependencyWalker( environment ).walk( assembler );
+
+                generateConfigIni( environment, targetEclipse );
+                generateLauncherIni( environment, targetEclipse );
 
                 if ( productConfiguration.includeLaunchers() )
                 {
@@ -649,16 +650,16 @@ public class ProductExportMojo
 				in = new BufferedInputStream(new FileInputStream(destConfigIni));
 				customConfig.load(in);
 				String simpleconfiguratorInitUrl = (String)customConfig.get("org.eclipse.equinox.simpleconfigurator.configUrl");
-				if (simpleconfiguratorInitUrl != null)
+				if (simpleconfiguratorInitUrl != null && simpleconfiguratorInitUrl.startsWith("file:"))
 				{
 					//aha! let's generate the bundles.info
-					File bundlesInfo = new File(configsFolder, simpleconfiguratorInitUrl);
-					
+					File bundlesInfo = new File(configsFolder, simpleconfiguratorInitUrl.substring("file:".length()));
+					bundlesInfo.getParentFile().mkdirs();
 					//TODO: read those from the config.ini (?) instead of the product file (?)
 			        Map<String, BundleConfiguration> bundlesToStart = productConfiguration.getPluginConfiguration();
 			        Map<String, PluginDescription> bundles =
 			            new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
-		        	BundlesInfoHelper.writeBundlesInfo(bundlesToStart, bundles, bundlesInfo);
+		        	BundlesInfoHelper.writeBundlesInfo(configsFolder.getParentFile(), bundlesToStart, bundles, bundlesInfo);
 				}
 			}
 			catch (IOException io)
@@ -769,7 +770,7 @@ public class ProductExportMojo
         {
         	BundleConfiguration updateConfigurator = bundlesToStart.get("org.eclipse.update.configurator");
         	BundleConfiguration simpleConfigurator = bundlesToStart.get("org.eclipse.equinox.simpleconfigurator");
-        	isUsingSimpleConfigurator = simpleConfigurator != null && simpleConfigurator.isAutoStart() && simpleConfigurator.getStartLevel() == 1;
+        	isUsingSimpleConfigurator = simpleConfigurator != null && simpleConfigurator.isAutoStart() && simpleConfigurator.getStartLevel() != -1;
         	if ( (updateConfigurator != null && updateConfigurator.isAutoStart())
         			|| (simpleConfigurator != null && simpleConfigurator.isAutoStart()) )
         	{   //well known bundles in charge of installing the other bundles:
@@ -796,9 +797,11 @@ public class ProductExportMojo
         	//org.eclipse.equinox.simpleconfigurator.configUrl=file\:org.eclipse.equinox.simpleconfigurator/bundles.info
         	setPropertyIfNotNull( props, "osgi.bundles", "org.eclipse.equinox.simpleconfigurator@start" );
         	setPropertyIfNotNull( props, "org.eclipse.equinox.simpleconfigurator.configUrl",
-        				"file\\:org.eclipse.equinox.simpleconfigurator/bundles.info");
-        	File bundlesInfo = new File(configurationFolder, "org.eclipse.equinox.simpleconfigurator/bundles.info");
-        	BundlesInfoHelper.writeBundlesInfo(bundlesToStart, bundles, bundlesInfo);
+        				"file:org.eclipse.equinox.simpleconfigurator/bundles.info");
+        	File bundlesInfo = new File(configurationFolder, "org.eclipse.equinox.simpleconfigurator");
+        	bundlesInfo.mkdir();
+        	bundlesInfo = new File(bundlesInfo, "bundles.info");
+        	BundlesInfoHelper.writeBundlesInfo(configurationFolder.getParentFile(), bundlesToStart, bundles, bundlesInfo);
         	return;
         }
         

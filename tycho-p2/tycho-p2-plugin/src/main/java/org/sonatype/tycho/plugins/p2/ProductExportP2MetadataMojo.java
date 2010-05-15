@@ -3,9 +3,12 @@ package org.sonatype.tycho.plugins.p2;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
+import java.util.StringTokenizer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -122,7 +125,6 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
             throw new MojoExecutionException( "Product configuration file not found "
                 + expandedProductFile.getAbsolutePath() );
         }
-    	computeProfile();
 
         try
         {
@@ -133,6 +135,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         {
             throw new MojoExecutionException( "Error reading product configuration file", e );
         }
+    	computeProfile();
 
     	
         for ( TargetEnvironment environment : getEnvironments() )
@@ -185,6 +188,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         //Step-3 invoke director to install the repo.
         currentPublisherApp = PRODUCT_DIRECTOR_APP_NAME;
         currentOtherArguments = null;
+        //TODO: save the config.ini file before it gets overridden
         super.execute();
         
     }
@@ -194,9 +198,15 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 	    if ( profile == null )
 	    {
 	    	//let's do something a bit nicer:
-	    	//the last segment of the product id. unless it is 'product'
+	    	//the last segment of the product id. unless it is 'product'. then look before.
 	    	String productId = productConfiguration.getId();
-	    	String[] segs = productId.split(".");
+	    	StringTokenizer tokenizer = new StringTokenizer(productId, ".");
+	    	ArrayList<String> toks = new ArrayList<String>();
+	    	while (tokenizer.hasMoreElements())
+	    	{
+	    		toks.add(tokenizer.nextToken());
+	    	}
+	    	String[] segs = toks.toArray(new String[toks.size()]);
 	    	for (int i = segs.length -1; i >= 0; i--)
 	    	{
 	    		if (segs[i].toLowerCase().indexOf("prod") == -1)
@@ -217,6 +227,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 	    	{
 	    		profile = "profile";
 	    	}
+	    	getLog().info("Computed profile " + profile);
 	    }
 
     }
@@ -232,7 +243,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
 					"-metadataRepository", getUpdateSiteLocation().toURI().toURL().toExternalForm(), //
 					"-artifactRepository", getUpdateSiteLocation().toURI().toURL().toExternalForm(), //
 					"-destination",	currentTarget.getCanonicalPath(),
-					"-profile",	profile != null ? profile : "profile",//productConfiguration.getId(),
+					"-profile",	profile,
 					"-profileProperties", "org.eclipse.update.install.features=true",
 					"-bundlepool", currentTarget.getCanonicalPath(),
 					"-p2.os", currentEnvironment.getOs(), 
