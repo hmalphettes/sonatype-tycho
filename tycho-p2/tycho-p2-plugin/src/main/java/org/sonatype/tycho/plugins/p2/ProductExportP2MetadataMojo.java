@@ -309,6 +309,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     				line = "	<site enabled=\"true\" updateable=\"true\" policy=\"USER-EXCLUDE\" url=\"platform:/base/\">";
     			}
     			lines.add(line);
+    			line = lr.readLine();
     		}
     		IOUtil.close(lr);
     		lr = null;
