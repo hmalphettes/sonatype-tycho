@@ -294,11 +294,14 @@ public class ProductConfiguration
     		return null;
     	}
     	String elemName = forVM ? "vmArgs" : "programArgs";
-    	if (platform != null && platform.length() < 2)
+    	if (platform != null)
     	{
-    		elemName = elemName + Character.toUpperCase(platform.charAt(0)) + platform.substring(1);
+    		if (platform.length() < 2) 
+    		{
+    			throw new IllegalArgumentException("Invalid platform name " + platform);
+    		}
+    		elemName = elemName + Character.toUpperCase(platform.charAt(0)) + platform.substring(1, 3);
     	}
-    	System.err.println(platform + " ........ looking for " + elemName);
     	Element programArgs = launcherArgs.getChild(elemName);
     	return programArgs != null ? programArgs.getText() : null;
     	

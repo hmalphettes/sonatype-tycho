@@ -7,7 +7,10 @@
    </configIni>
 
    <launcherArgs>
+      <vmArgsLin>linus</vmArgsLin>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts</vmArgsMac>
+      <vmArgsSol>solaris</vmArgsSol>
+      <vmArgsWin>win</vmArgsWin>
    </launcherArgs>
 
    <windowImages/>
@@ -46,13 +49,16 @@
       <plugin id="org.eclipse.equinox.p2.artifact.repository"/>
       <plugin id="org.eclipse.equinox.p2.core"/>
       <plugin id="org.eclipse.equinox.p2.director"/>
+      <plugin id="org.eclipse.equinox.p2.director.app"/>
       <plugin id="org.eclipse.equinox.p2.engine"/>
+      <plugin id="org.eclipse.equinox.p2.garbagecollector"/>
       <plugin id="org.eclipse.equinox.p2.jarprocessor"/>
       <plugin id="org.eclipse.equinox.p2.metadata"/>
       <plugin id="org.eclipse.equinox.p2.metadata.repository"/>
       <plugin id="org.eclipse.equinox.p2.publisher"/>
       <plugin id="org.eclipse.equinox.p2.repository"/>
-      <plugin id="org.eclipse.equinox.p2.updatesite"/>
+      <plugin id="org.eclipse.equinox.p2.touchpoint.eclipse"/>
+      <plugin id="org.eclipse.equinox.p2.touchpoint.natives"/>
       <plugin id="org.eclipse.equinox.p2.updatesite"/>
       <plugin id="org.eclipse.equinox.preferences"/>
       <plugin id="org.eclipse.equinox.registry"/>
@@ -64,12 +70,6 @@
       <plugin id="org.eclipse.osgi.services"/>
       <plugin id="org.sat4j.core"/>
       <plugin id="org.sat4j.pb"/>
-
-      <plugin id="org.eclipse.equinox.p2.director.app"/>
-      <plugin id="org.eclipse.equinox.p2.touchpoint.eclipse"/>
-      <plugin id="org.eclipse.equinox.p2.touchpoint.natives"/>
-      <plugin id="org.eclipse.equinox.p2.garbagecollector"/>
-
       <plugin id="org.sonatype.tycho.p2.impl"/>
       <plugin id="org.sonatype.tycho.p2.maven.repository"/>
    </plugins>

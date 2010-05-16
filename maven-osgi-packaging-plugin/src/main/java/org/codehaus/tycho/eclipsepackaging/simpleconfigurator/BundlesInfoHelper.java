@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +34,7 @@ public class BundlesInfoHelper {
 
 
 	public static void writeBundlesInfo(File currentEclipse, Map<String, BundleConfiguration> bundlesToStart,
-			Map<String, PluginDescription> bundles, File bundlesInfo)
+			Map<String, PluginDescription> bundles, File bundlesInfo, boolean osIsWin)
 	throws MojoExecutionException, MojoFailureException
 	{
 		ArrayList<PluginDescription> list = new ArrayList<PluginDescription>(bundles.values());
@@ -52,13 +53,13 @@ public class BundlesInfoHelper {
 			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(bundlesInfo), "UTF-8"));
 			
 			writer.write(ENCODING_UTF8);
-			writer.newLine();
+			writeNewline(writer, osIsWin);
 			writer.write(createVersionLine());
-			writer.newLine();
+			writeNewline(writer, osIsWin);
 			for (PluginDescription pd : list)
 			{
 				writer.write(createBundleInfoLine(currentEclipse, pd, bundlesToStart.get(pd.getKey().getId())));
-				writer.newLine();
+				writeNewline(writer, osIsWin);
 			}
 		}
 		catch (IOException e)
@@ -71,6 +72,10 @@ public class BundlesInfoHelper {
 		}
 	}
 	
+	private static void writeNewline(Writer writer, boolean osIsWin) throws IOException
+	{
+		writer.append(osIsWin ? "\n\r" : "\n");
+	}
 
 	public static String createVersionLine() {
 		return VERSION_PREFIX + VERSION_1;

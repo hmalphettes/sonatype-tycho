@@ -660,7 +660,8 @@ public class ProductExportMojo
 			        Map<String, BundleConfiguration> bundlesToStart = productConfiguration.getPluginConfiguration();
 			        Map<String, PluginDescription> bundles =
 			            new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
-		        	BundlesInfoHelper.writeBundlesInfo(configsFolder.getParentFile(), bundlesToStart, bundles, bundlesInfo);
+		        	BundlesInfoHelper.writeBundlesInfo(configsFolder.getParentFile(), bundlesToStart, bundles, bundlesInfo,
+		        			os != null && os.indexOf("win") != -1);
 				}
 			}
 			catch (IOException io)
@@ -802,7 +803,9 @@ public class ProductExportMojo
         	File bundlesInfo = new File(configurationFolder, "org.eclipse.equinox.simpleconfigurator");
         	bundlesInfo.mkdir();
         	bundlesInfo = new File(bundlesInfo, "bundles.info");
-        	BundlesInfoHelper.writeBundlesInfo(configurationFolder.getParentFile(), bundlesToStart, bundles, bundlesInfo);
+        	BundlesInfoHelper.writeBundlesInfo(configurationFolder.getParentFile(),
+        			bundlesToStart, bundles, bundlesInfo,
+        			environment.getOs() != null && environment.getOs().indexOf("win") != -1);
         	return;
         }
         
