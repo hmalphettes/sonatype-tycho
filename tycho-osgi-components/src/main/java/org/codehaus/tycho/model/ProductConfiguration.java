@@ -298,7 +298,7 @@ public class ProductConfiguration
     	{
     		elemName += Character.toUpperCase(platform.charAt(0)) + platform.substring(1);
     	}
-    	Element programArgs = dom.getChild(elemName);
+    	Element programArgs = launcherArgs.getChild(elemName);
     	return programArgs != null ? programArgs.getText() : null;
     	
     }

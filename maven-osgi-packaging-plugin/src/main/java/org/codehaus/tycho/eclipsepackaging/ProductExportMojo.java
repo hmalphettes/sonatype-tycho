@@ -570,12 +570,12 @@ public class ProductExportMojo
     	String osProgArgs = os != null ? productConfiguration.getLauncherArgsForProgram(os) : null;
     	String allVmArgs = productConfiguration.getLauncherArgsForProgram(null);
     	String osVmArgs = os != null ? productConfiguration.getLauncherArgsForProgram(os) : null;
-    	
     	if (allProgArgs != null || osProgArgs != null || allVmArgs != null || osVmArgs != null)
     	{
     		File launcherIni = new File(target, launcherName + ".ini");
     		BufferedWriter writer = null;
     		try {
+    			if (!launcherIni.exists()) launcherIni.createNewFile();
     			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(launcherIni), "UTF-8"));
     			//TODO: output the other arguments that we can live without? -startup and --startup-library ?
     			writeArgLine(allProgArgs, writer);
@@ -583,7 +583,7 @@ public class ProductExportMojo
     			if (allVmArgs != null || osVmArgs != null) writeArgLine("-vmargs", writer);
     			writeArgLine(allVmArgs, writer);
     			writeArgLine(osVmArgs, writer);
-    				
+    			writer.flush();
     		}
     		catch (IOException e)
     		{
@@ -599,7 +599,7 @@ public class ProductExportMojo
     
     private void writeArgLine(String line, BufferedWriter writer) throws IOException
     {
-    	if (line == null || line.length() != 0)
+    	if (line == null || line.length() == 0)
 		{
 			return;
 		}

@@ -220,11 +220,12 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
     }
     
     /**
+     * <p>
      * After P2 Director has installed the IUs and regenrated a couple of files it
      * seems there are a couple of things not quite right.
      * Maybe some parameters are missing when we invoke the P2 director or
      * there are enhancements to be filed.
-     * 
+     * </p>
      * Here are the tweaks:
      * <ul
      * <li> if we are using the simpleconfigurator then p2 overrode the osgi.bundles. we
