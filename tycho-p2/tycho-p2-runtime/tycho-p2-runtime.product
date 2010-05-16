@@ -7,10 +7,7 @@
    </configIni>
 
    <launcherArgs>
-      <vmArgsLin>linus</vmArgsLin>
       <vmArgsMac>-XstartOnFirstThread -Dorg.eclipse.swt.internal.carbon.smallFonts</vmArgsMac>
-      <vmArgsSol>solaris</vmArgsSol>
-      <vmArgsWin>win</vmArgsWin>
    </launcherArgs>
 
    <windowImages/>
