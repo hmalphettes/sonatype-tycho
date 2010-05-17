@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -23,7 +22,6 @@ import org.codehaus.tycho.model.BundleConfiguration;
  * Similar to what the PDEBuild does.
  * Ported from org.eclipse.equinox.internal.simpleconfigurator.manipulator.SimpleConfiguratorManipulatorUtils
  * 
- * Should we attribute copyright to IBM here?
  * TODO: reuse directly the simpleconfigurator.manipulator plugin.
  */
 public class BundlesInfoHelper {
@@ -81,7 +79,8 @@ public class BundlesInfoHelper {
 		return VERSION_PREFIX + VERSION_1;
 	}
 
-	public static String createBundleInfoLine(File currentEclipse, PluginDescription bundleInfo, BundleConfiguration bundleConfig) {
+	public static String createBundleInfoLine(File currentEclipse,
+			PluginDescription bundleInfo, BundleConfiguration bundleConfig) {
 		// symbolicName,version,location,startLevel,markedAsStarted
 		StringBuffer buffer = new StringBuffer();
 		buffer.append(bundleInfo.getKey().getId());
@@ -110,7 +109,6 @@ public class BundlesInfoHelper {
 			}
 		}
 		buffer.append(name);
-				//createBundleLocation(bundleInfo.getLocation().toURI()));
 		
 		buffer.append(',');
 		buffer.append(bundleConfig != null 
@@ -119,17 +117,5 @@ public class BundlesInfoHelper {
 		buffer.append(bundleConfig != null ? bundleConfig.isAutoStart() : "false");
 		return buffer.toString();
 	}
-
-	public static String createBundleLocation(URI location) {
-		//encode comma characters because it is used as the segment delimiter in the bundle info file
-		String result = location.toString();
-		int commaIndex = result.indexOf(',');
-		while (commaIndex != -1) {
-			result = result.substring(0, commaIndex) + "%2C" + result.substring(commaIndex + 1); //$NON-NLS-1$
-			commaIndex = result.indexOf(',');
-		}
-		return result;
-	}
-	
 	
 }
