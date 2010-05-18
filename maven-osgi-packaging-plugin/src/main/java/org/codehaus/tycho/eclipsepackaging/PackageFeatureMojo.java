@@ -283,7 +283,7 @@ public class PackageFeatureMojo
         }
         catch ( IOException e )
         {
-            throw new RuntimeException( "Could not determine installation size", e );
+            throw new RuntimeException( "Could not determine installation size of " + location.getAbsolutePath(), e );
         }
         return installSize;
     }
