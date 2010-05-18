@@ -13,8 +13,11 @@
    <windowImages/>
 
    <launcher>
+      <linux icon="doesnotexist"/>
+      <macosx icon="weird"/>
       <solaris/>
-      <win useIco="false">
+      <win useIco="true">
+         <ico path="broken"/>
          <bmp/>
       </win>
    </launcher>
