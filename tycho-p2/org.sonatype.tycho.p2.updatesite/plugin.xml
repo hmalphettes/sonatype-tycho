@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.2"?>
+<plugin>
+   <extension id="UpdateSitePublisherWithJRE" point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="true">
+         <run
+               class="org.sonatype.tycho.p2.updatesite.UpdateSitePublisherWithJREApplication">
+         </run>
+      </application>
+   </extension>
+   <extension id="org.sonatype.tycho.p2.updatesite.UpdateSitePublisherWithJRE" point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="true">
+         <run
+               class="org.sonatype.tycho.p2.updatesite.UpdateSitePublisherWithJREApplication">
+         </run>
+      </application>
+   </extension>
+</plugin>

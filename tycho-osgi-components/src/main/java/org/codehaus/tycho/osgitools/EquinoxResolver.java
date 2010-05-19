@@ -168,9 +168,13 @@ public class EquinoxResolver
     public void addBundle( State state, long id, File bundleLocation, boolean override )
         throws BundleException
     {
-        if ( bundleLocation == null || !bundleLocation.exists() )
+        if ( bundleLocation == null || !bundleLocation.exists())
         {
             throw new IllegalArgumentException( "bundleLocation not found: " + bundleLocation );
+        }
+        if ( bundleLocation.length() == 0)
+        {
+        	throw new IllegalArgumentException( bundleLocation + " is not correctly downloaded." );
         }
 
         Dictionary mf = loadManifest( bundleLocation );
