@@ -2,6 +2,7 @@ package org.sonatype.tycho.plugins.p2;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -131,6 +132,13 @@ public abstract class AbstractP2MetadataMojo
         {
         	cli.addArguments(otherArgs);
         }
+        
+        String[] downloadStats = getDownloadStatsPublisherArguments();
+        if (downloadStats != null) {
+        	cli.addArguments(downloadStats);
+        }
+        
+        
         //last argument is traditionally for the vm:
         String vmArg = internalGetVmArgLine();
         if (vmArg != null && vmArg.length() != 0)
@@ -183,6 +191,24 @@ public abstract class AbstractP2MetadataMojo
     	            "-noDefaultIUs", //
 //    	    		"-console", "-consolelog"
     	            };
+    }
+    
+    /**
+     * If the publisher application supports it these arguments will generate
+     * the hooks for the eclipse download stats.
+     * See http://wiki.eclipse.org/Equinox_p2_download_stats
+     * and https://bugs.eclipse.org/bugs/show_bug.cgi?id=302160
+     * 
+     * @return The download stats arguments
+     */
+    protected String[] getDownloadStatsPublisherArguments() {
+    	String statsURI = (String) project.getProperties().get("tycho.publisher.with.statsUri");
+    	String statsTrackedBundles = (String) project.getProperties().get("tycho.publisher.with.statsTrackedBundleIDs");
+    	if (statsURI != null && statsTrackedBundles != null)
+    	{
+    		return new String[] { "-p2.statsURI", statsURI, "-p2.statsTrackedBundles", statsTrackedBundles };
+    	}
+    	return null;
     }
     
     /**

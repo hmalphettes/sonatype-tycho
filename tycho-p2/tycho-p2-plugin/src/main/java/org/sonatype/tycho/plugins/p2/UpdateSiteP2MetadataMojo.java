@@ -18,7 +18,8 @@ public class UpdateSiteP2MetadataMojo
 	 */
     protected String getPublisherApplication()
     {
-        if ("true".equals(super.project.getProperties().get("tycho.updatesite.with.jre")))
+        if ("true".equals(super.project.getProperties().get("tycho.updatesite.with.jre"))
+        		|| super.project.getProperties().get("tycho.updatesite.with.statsUri") != null)
        	{
         	return UPDATE_SITE_WITH_JRE_PUBLISHER_APP_NAME;
        	}
@@ -32,7 +33,10 @@ public class UpdateSiteP2MetadataMojo
      */
     protected String[] getOtherPublisherArguments()
     {
-    	return new String[] {"-console", "-consoleLog", "-addJREIU"};
+    	if ("true".equals(super.project.getProperties().get("tycho.updatesite.with.jre"))) {
+        	return new String[] {"-addJREIU", "-consoleLog"};
+    	}
+    	return null;
     }
 
     
