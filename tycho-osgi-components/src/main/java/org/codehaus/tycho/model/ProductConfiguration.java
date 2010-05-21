@@ -172,6 +172,63 @@ public class ProductConfiguration
     {
         dom.setAttribute( "version", version );
     }
+    
+    /**
+     * When building a p2 enable product in order for the ProductPublisher
+     * to update the config.ini file and take care of simpleconfigurator's bundles.info
+     * It is necessary to specify a custom config.ini.
+     * See org.eclipse.equinox.p2.publisher.eclipse.ProductFileAdvice#createDataLoader
+     * <p>
+     * When the product file expanded version is built we make a new copy of it for
+     * each platform and we set the path to the config.ini file so that p2 does its job.
+     * </p>
+     * 
+      * @param configIniPath the custom path, relative to the product config file
+     * if absolute and it does not exist then it is relative to the worksapce (errrr...)
+     * see org.eclipse.equinox.p2.publisher.eclipse.ProductFileAdvice#createDataLoader
+     *  @param platform The WS or null if this config.ini is not WS specific.
+     */
+    public void setConfigIni(String configIniPath, String platform)
+    {
+		Element configIni = dom.getChild("configIni");
+		if (configIni == null)
+		{
+			//should we throw an exception
+			return;
+		}
+    	if (platform == null)
+    	{
+    		if (configIniPath != null)
+    		{
+	    		configIni.setAttribute("use", "custom");
+	    		configIni.setAttribute("path", configIniPath);
+    		}
+    		else
+    		{
+    			configIni.setAttribute("use", "default");
+    			configIni.removeAttribute("path");
+    		}
+    	}
+    	else
+    	{
+			Element platformElem = configIni.getChild(platform);
+			if (platformElem != null)
+			{
+				if (configIniPath == null)
+				{
+					configIni.removeNode(platformElem);
+				}
+			}
+			else
+			{
+    			platformElem = new Element(configIni, platform);
+			}
+			if (configIniPath != null)
+			{
+				platformElem.setText(configIniPath);
+			}
+    	}
+    }
 
     public List<String> getW32Icons()
     {

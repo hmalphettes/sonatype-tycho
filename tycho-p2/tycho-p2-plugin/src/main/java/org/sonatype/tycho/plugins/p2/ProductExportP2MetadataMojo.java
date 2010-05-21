@@ -177,11 +177,13 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         currentRepository = new File(project.getBuild().getDirectory(), toString(environment) + "_repository");
         currentRepository.mkdirs();
         
+        String configArg = environment.getWs() + "." + environment.getOs() + "." + environment.getArch();
+        
         //Step-1 publish the features and bundles:
         //http://wiki.eclipse.org/Equinox/p2/Publisher#Features_And_Bundles_Publisher_Application
         currentPublisherApp = FeatureP2MetadataMojo.FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME;
         currentOtherArguments = new String[] {
-        		"-configs", toString(environment),
+        		"-configs", configArg,
         		"-compress",
         		"-publishArtifacts"
         };
@@ -196,7 +198,7 @@ public class ProductExportP2MetadataMojo extends AbstractP2MetadataMojo {
         		"-publishArtifacts",
         		"-executables", getEquinoxExecutableFeature(),
         		"-flavor", "tooling",
-        		"-configs", toString(environment)
+        		"-configs", configArg
         };
         super.execute();
         

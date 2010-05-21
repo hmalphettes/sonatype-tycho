@@ -38,6 +38,5 @@ public class UpdateSiteP2MetadataMojo
     	}
     	return null;
     }
-
     
 }

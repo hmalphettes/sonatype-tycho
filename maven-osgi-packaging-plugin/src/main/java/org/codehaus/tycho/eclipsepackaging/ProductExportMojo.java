@@ -99,8 +99,8 @@ public class ProductExportMojo
      */
     private TargetEnvironment[] environments;
 
-    /**
-     * @parameter expression="${tycho.product.enableP2}" default-value="true"
+    /** expression="${tycho.product.enableP2}" 
+     * @parameter default-value="true"
      */
     private boolean enableP2;
     
@@ -196,6 +196,23 @@ public class ProductExportMojo
                 {
                     copyExecutable( environment, targetEclipse );
                 }
+                
+                //in the "expanded" product file specify the config.ini file
+                //otherwise p2's ProductPublisher does not read the config.ini
+                //file and does not generate the bundles.info.
+                //see org.eclipse.equinox.p2.publisher.eclipse#createDataLoader
+                try
+                {
+                	productConfiguration.setConfigIni(
+                		targetEclipse.getCanonicalPath() + "/configuration/config.ini",
+                		environment.getWs());
+                }
+                catch (IOException ioe)
+                {
+                	productConfiguration.setConfigIni(
+                    		targetEclipse.getAbsolutePath() + "/configuration/config.ini",
+                    		environment.getWs());
+                }
 
             }
         }
@@ -236,8 +253,11 @@ public class ProductExportMojo
         // String productVersion = VersioningHelper.getExpandedVersion( project, version );
         // productConfiguration.setVersion( productVersion.toString() );
 
+        
+        
         try
         {
+        	
             ProductConfiguration.write( productConfiguration, expandedProductFile );
 
             if ( p2inf.canRead() )
@@ -695,7 +715,7 @@ public class ProductExportMojo
         setPropertyIfNotNull( props, "eclipse.product", id );
         // TODO check if there are any other levels
         setPropertyIfNotNull( props, "osgi.bundles.defaultStartLevel", "4" );
-
+        
         File configsFolder = new File( target, "configuration" );
         configsFolder.mkdirs();
         generateOSGiBundles( props, environment, configsFolder );
@@ -734,7 +754,7 @@ public class ProductExportMojo
         Map<String, PluginDescription> bundles =
             new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
 
-        boolean autoListAllBundles = false;
+        boolean autoListAllBundles = enableP2 ? false : true;
         boolean isUsingSimpleConfigurator = false;
         if ( bundlesToStart == null || bundlesToStart.isEmpty() )
         {
@@ -768,7 +788,7 @@ public class ProductExportMojo
                     new BundleConfiguration( "org.eclipse.equinox.simpleconfigurator", 1, true ) );
 		    }
         }
-        else
+        else if (enableP2)
         {
         	BundleConfiguration updateConfigurator = bundlesToStart.get("org.eclipse.update.configurator");
         	BundleConfiguration simpleConfigurator = bundlesToStart.get("org.eclipse.equinox.simpleconfigurator");
@@ -782,7 +802,10 @@ public class ProductExportMojo
     				getLog().info("Not listing all bundles in osgi.bundles" +
     						" as a configurator is part of the auto-started bundles.");
     			}
-        		autoListAllBundles = false;
+        		if (enableP2)
+        		{//when p2 is enabled director will be in charge of the osgi.bundles property.
+        			autoListAllBundles = false;
+        		}
         	}
         }
         if (forceConfigIniOsgiBundlesListAll != null)
