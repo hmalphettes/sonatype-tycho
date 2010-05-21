@@ -46,7 +46,6 @@ import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.TargetPlatformConfiguration;
 import org.codehaus.tycho.TychoConstants;
 import org.codehaus.tycho.TychoProject;
-import org.codehaus.tycho.eclipsepackaging.simpleconfigurator.BundlesInfoHelper;
 import org.codehaus.tycho.model.BundleConfiguration;
 import org.codehaus.tycho.model.ProductConfiguration;
 import org.codehaus.tycho.osgitools.BundleReader;
@@ -104,18 +103,6 @@ public class ProductExportMojo
      */
     private boolean enableP2;
     
-    /**
-     * true to force the generation of osgi.bundle in config.ini that contains
-     * all of the bundles.
-     * false to prevent it.
-     * When undefined, automatically decide based on the product file.
-     * 
-     * @parameter
-     */
-    private String forceConfigIniOsgiBundlesListAll;
-
-
-
     /**
      * @parameter default-value="false"
      */
@@ -662,38 +649,6 @@ public class ProductExportMojo
 				throw new MojoFailureException("Unable to copy the custom config.ini for " + os
     					+ " that located at " + customIniF.getAbsolutePath(), e);
 			}
-			
-			//generate the bundles.info file is needed:
-			Properties customConfig = new Properties();
-			InputStream in = null;
-			try
-			{
-				in = new BufferedInputStream(new FileInputStream(destConfigIni));
-				customConfig.load(in);
-				String simpleconfiguratorInitUrl = (String)customConfig.get("org.eclipse.equinox.simpleconfigurator.configUrl");
-				if (simpleconfiguratorInitUrl != null && simpleconfiguratorInitUrl.startsWith("file:"))
-				{
-					//aha! let's generate the bundles.info
-					File bundlesInfo = new File(configsFolder, simpleconfiguratorInitUrl.substring("file:".length()));
-					bundlesInfo.getParentFile().mkdirs();
-					//TODO: read those from the config.ini (?) instead of the product file (?)
-			        Map<String, BundleConfiguration> bundlesToStart = productConfiguration.getPluginConfiguration();
-			        Map<String, PluginDescription> bundles =
-			            new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
-		        	BundlesInfoHelper.writeBundlesInfo(configsFolder.getParentFile(), bundlesToStart, bundles, bundlesInfo,
-		        			os != null && os.indexOf("win") != -1);
-				}
-			}
-			catch (IOException io)
-			{
-				throw new MojoFailureException("Invalid config.ini file " + 
-						customIniF.getAbsolutePath() + ": could not load it as properties.", io);
-			}
-			finally
-			{
-				if (in != null) IOUtil.close(in);
-			}
-    		return;
     	}
     	
         getLog().debug( "Generating config.ini" );
@@ -755,20 +710,21 @@ public class ProductExportMojo
             new LinkedHashMap<String, PluginDescription>( getBundles( environment ) );
 
         boolean autoListAllBundles = enableP2 ? false : true;
-        boolean isUsingSimpleConfigurator = false;
         if ( bundlesToStart == null || bundlesToStart.isEmpty() )
         {
         	autoListAllBundles = true;
             bundlesToStart = new HashMap<String, BundleConfiguration>();
 
             // This is the well known set of bundles for Eclipse based RCP application for 3.3 till 3.6 without p2
-        	//if we see the p2's simpleconfigurator then we add it and that makes it work for p2 (should)
+        	// if we see the p2's simpleconfigurator then we add it and that makes it work for p2 (should)
+            // here is the doc of what the PDEBuild does:
+            // http://help.eclipse.org/galileo/index.jsp?topic=/org.eclipse.pde.doc.user/tasks/pde_p2_configuringproducts.htm
     		bundlesToStart.put( "org.eclipse.equinox.common", // 
 		                        new BundleConfiguration( "org.eclipse.equinox.common", 2, true ) );
     		if (bundles.containsKey("org.eclipse.update.configurator"))
 		    {
 		    	bundlesToStart.put( "org.eclipse.update.configurator", //
-		                        new BundleConfiguration( "org.eclipse.update.configurator", 3, true ) );
+		                        new BundleConfiguration( "org.eclipse.update.configurator", 4, true ) );
 		    	autoListAllBundles = false;
 		    }
 		    if (bundles.containsKey("org.eclipse.core.runtime"))
@@ -787,49 +743,6 @@ public class ProductExportMojo
 		    	bundlesToStart.put( "org.eclipse.equinox.simpleconfigurator", // 
                     new BundleConfiguration( "org.eclipse.equinox.simpleconfigurator", 1, true ) );
 		    }
-        }
-        else if (enableP2)
-        {
-        	BundleConfiguration updateConfigurator = bundlesToStart.get("org.eclipse.update.configurator");
-        	BundleConfiguration simpleConfigurator = bundlesToStart.get("org.eclipse.equinox.simpleconfigurator");
-        	isUsingSimpleConfigurator = simpleConfigurator != null && simpleConfigurator.isAutoStart() && simpleConfigurator.getStartLevel() != -1;
-        	if ( (updateConfigurator != null && updateConfigurator.isAutoStart())
-        			|| (simpleConfigurator != null && simpleConfigurator.isAutoStart()) )
-        	{   //well known bundles in charge of installing the other bundles:
-        		//don't list all the bundles.
-        		if (forceConfigIniOsgiBundlesListAll == null) 
-    			{
-    				getLog().info("Not listing all bundles in osgi.bundles" +
-    						" as a configurator is part of the auto-started bundles.");
-    			}
-        		if (enableP2)
-        		{//when p2 is enabled director will be in charge of the osgi.bundles property.
-        			autoListAllBundles = false;
-        		}
-        	}
-        }
-        if (forceConfigIniOsgiBundlesListAll != null)
-        {   //user gets to choose anyways.
-        	autoListAllBundles = "true".equals(forceConfigIniOsgiBundlesListAll);
-        	getLog().info((autoListAllBundles ? "Not listing" : "Listing") + " all bundles in osgi.bundles.");
-        }
-        
-        if (isUsingSimpleConfigurator)
-        {
-        	//in that case a single plugin is autostarted
-        	//and everything else is generated in the bundles.info file.
-        	//osgi.bundles=reference\:file\:org.eclipse.equinox.simpleconfigurator_1.0.200.v20100416.jar@1\:start
-        	//org.eclipse.equinox.simpleconfigurator.configUrl=file\:org.eclipse.equinox.simpleconfigurator/bundles.info
-        	setPropertyIfNotNull( props, "osgi.bundles", "org.eclipse.equinox.simpleconfigurator@start" );
-        	setPropertyIfNotNull( props, "org.eclipse.equinox.simpleconfigurator.configUrl",
-        				"file:org.eclipse.equinox.simpleconfigurator/bundles.info");
-        	File bundlesInfo = new File(configurationFolder, "org.eclipse.equinox.simpleconfigurator");
-        	bundlesInfo.mkdir();
-        	bundlesInfo = new File(bundlesInfo, "bundles.info");
-        	BundlesInfoHelper.writeBundlesInfo(configurationFolder.getParentFile(),
-        			bundlesToStart, bundles, bundlesInfo,
-        			environment.getOs() != null && environment.getOs().indexOf("win") != -1);
-        	return;
         }
         
         if (!autoListAllBundles)
