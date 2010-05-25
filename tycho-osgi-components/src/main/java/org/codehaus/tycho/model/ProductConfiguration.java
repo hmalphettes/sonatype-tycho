@@ -12,7 +12,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -172,6 +172,63 @@ public class ProductConfiguration
     {
         dom.setAttribute( "version", version );
     }
+    
+    /**
+     * When building a p2 enable product in order for the ProductPublisher
+     * to update the config.ini file and take care of simpleconfigurator's bundles.info
+     * It is necessary to specify a custom config.ini.
+     * See org.eclipse.equinox.p2.publisher.eclipse.ProductFileAdvice#createDataLoader
+     * <p>
+     * When the product file expanded version is built we make a new copy of it for
+     * each platform and we set the path to the config.ini file so that p2 does its job.
+     * </p>
+     * 
+      * @param configIniPath the custom path, relative to the product config file
+     * if absolute and it does not exist then it is relative to the worksapce (errrr...)
+     * see org.eclipse.equinox.p2.publisher.eclipse.ProductFileAdvice#createDataLoader
+     *  @param platform The WS or null if this config.ini is not WS specific.
+     */
+    public void setConfigIni(String configIniPath, String platform)
+    {
+		Element configIni = dom.getChild("configIni");
+		if (configIni == null)
+		{
+			//should we throw an exception
+			return;
+		}
+    	if (platform == null)
+    	{
+    		if (configIniPath != null)
+    		{
+	    		configIni.setAttribute("use", "custom");
+	    		configIni.setAttribute("path", configIniPath);
+    		}
+    		else
+    		{
+    			configIni.setAttribute("use", "default");
+    			configIni.removeAttribute("path");
+    		}
+    	}
+    	else
+    	{
+			Element platformElem = configIni.getChild(platform);
+			if (platformElem != null)
+			{
+				if (configIniPath == null)
+				{
+					configIni.removeNode(platformElem);
+				}
+			}
+			else
+			{
+    			platformElem = new Element(configIni, platform);
+			}
+			if (configIniPath != null)
+			{
+				platformElem.setText(configIniPath);
+			}
+    	}
+    }
 
     public List<String> getW32Icons()
     {
@@ -234,7 +291,7 @@ public class ProductConfiguration
             return null;
         }
 
-        Map<String, BundleConfiguration> configs = new HashMap<String, BundleConfiguration>();
+        Map<String, BundleConfiguration> configs = new LinkedHashMap<String, BundleConfiguration>();
         for ( Element pluginDom : configurationsDom.getChildren( "plugin" ) )
         {
             configs.put( pluginDom.getAttributeValue( "id" ), new BundleConfiguration( pluginDom ) );
@@ -256,5 +313,75 @@ public class ProductConfiguration
             return null;
         }
         return linux.getAttributeValue( "icon" );
+    }
+    
+    /**
+     * Return the value of /configIni/$platform/text() or null if there is no such element.
+     * @param platform (aka OS) According to the PDE UI for the product file,
+     * it should be one of 'linux', 'macosx', 'solaris', 'win32'
+     * however any string is accepted here. 
+     * @return The path to the config file. According to the PDE UI it is an
+     * absolute path where the root is the project.
+     */
+    public String getConfigIni(String platform)
+    {
+    	Element configIni = dom.getChild("configIni");
+    	if (configIni == null)
+    	{
+    		return null;
+    	}
+    	Element platIni = dom.getChild(platform);
+    	if (platIni == null)
+    	{
+    		return null;
+    	}
+    	return platIni.getText();
+    }
+    
+    /**
+     * @param platform (aka OS) or null for the arguments that apply to all platforms.
+     * @return the launcher argument for the VM
+     */
+    private String getLauncherArgs(String platform, boolean forVM)
+    {
+    	Element launcherArgs = dom.getChild("launcherArgs");
+    	if (launcherArgs == null)
+    	{
+    		return null;
+    	}
+    	String elemName = forVM ? "vmArgs" : "programArgs";
+    	if (platform != null)
+    	{
+    		if (platform.length() < 2) 
+    		{
+    			throw new IllegalArgumentException("Invalid platform name " + platform);
+    		}
+    		elemName = elemName + Character.toUpperCase(platform.charAt(0)) + platform.substring(1, 3);
+    	}
+    	Element programArgs = launcherArgs.getChild(elemName);
+    	return programArgs != null ? programArgs.getText() : null;
+    	
+    }
+    /**
+     * Return the value of /launcherArgs/name()[concat('vmArgs',$platform)]/text()
+     * or null if there is no such element.
+     * 
+     * @param platform (aka OS) or null for the arguments that apply to all platforms.
+     * @return the launcher argument for the VM
+     */
+    public String getLauncherArgsForVM(String platform)
+    {
+    	return getLauncherArgs(platform, true);
+    }
+    /**
+     * Return the value of /launcherArgs/name()[concat('programArgs',$platform)]/text() 
+     * or null if there is no such element.
+     * 
+     * @param platform (aka OS) or null for the arguments that apply to all platforms.
+     * @return the launcher argument for the program
+     */
+    public String getLauncherArgsForProgram(String platform)
+    {
+    	return getLauncherArgs(platform, false);
     }
 }
