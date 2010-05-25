@@ -553,7 +553,7 @@ public class ProductExportMojo
     }
     
     /**
-     * transforms the launcherArgs element in the product file into a $launcher.ini file.
+     * Transforms the launcherArgs element in the product file into a $launcher.ini file.
      * @param environment
      * @param target
      * @throws MojoExecutionException
@@ -568,10 +568,6 @@ public class ProductExportMojo
     	if (launcherName == null)
     	{
     		return;
-    	}
-    	if (launcherName.length() == 0)
-    	{
-    		launcherName = "eclipse";
     	}
     	String allProgArgs = productConfiguration.getLauncherArgsForProgram(null);
     	String osProgArgs = os != null ? productConfiguration.getLauncherArgsForProgram(os) : null;
