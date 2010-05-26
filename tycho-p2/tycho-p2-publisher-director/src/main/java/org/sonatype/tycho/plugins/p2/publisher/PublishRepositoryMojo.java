@@ -70,31 +70,33 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 	protected void publishProducts()
 	throws MojoExecutionException, MojoFailureException {
 		for (File prod : getProductFiles())
-		try
 		{
-			//see http://wiki.eclipse.org/Equinox/p2/Publisher#Product_Publisher
-			
-			//first prepare an "expanded" product configuration (and eventually a small config.ini
-			//if we still find out that the bundles.info does not get generated.)
-			ExpandedProductConfiguration conf = expandProductConfiguration(prod);
-			
-			Commandline cli = super.getCommandLine(FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME);
-			cli.addArguments(new String[] {
-					"-metadataRepository", getRepositoryValue(),
-					"-artifactRepository", getRepositoryValue(),
-					"-productFile", conf.location.getCanonicalPath(),
-					"-append",
-					"-executables", getEquinoxExecutableFeature(),
-					"-publishArtifacts"});
-			cli.addArguments(getFlavorParameter(conf.parsed.getId()));
-			cli.addArguments(getConfigsParameter());
-			cli.addArguments(getCompressFlag());
-			
-			super.execute(cli, null);
-		}
-		catch (IOException ioe)
-		{
-			throw new MojoExecutionException("Unable to execute the publisher", ioe);
+			try
+			{
+				//see http://wiki.eclipse.org/Equinox/p2/Publisher#Product_Publisher
+				
+				//first prepare an "expanded" product configuration (and eventually a small config.ini
+				//if we still find out that the bundles.info does not get generated.)
+				ExpandedProductConfiguration conf = expandProductConfiguration(prod);
+				
+				Commandline cli = super.getCommandLine(PRODUCT_PUBLISHER_APP_NAME);
+				cli.addArguments(new String[] {
+						"-metadataRepository", getRepositoryValue(),
+						"-artifactRepository", getRepositoryValue(),
+						"-productFile", conf.location.getCanonicalPath(),
+						"-append",
+						"-executables", getEquinoxExecutableFeature(),
+						"-publishArtifacts"});
+				cli.addArguments(getFlavorParameter(conf.parsed.getId()));
+				cli.addArguments(getConfigsParameter());
+				cli.addArguments(getCompressFlag());
+				
+				super.execute(cli, null);
+			}
+			catch (IOException ioe)
+			{
+				throw new MojoExecutionException("Unable to execute the publisher", ioe);
+			}
 		}
 	}
 

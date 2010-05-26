@@ -280,7 +280,7 @@ public class P2ResolverImpl
     }
 
     protected void resolveProject( P2ResolutionResult result, File projectLocation, Map<String, String> properties )
-    {System.err.println("********** resolving " + projectLocation.getAbsolutePath());
+    {
         Map<String, String> newSelectionContext = SimplePlanner.createSelectionContext( properties );
 
         IInstallableUnit[] availableIUs = gatherAvailableInstallableUnits( monitor );
@@ -454,7 +454,7 @@ public class P2ResolverImpl
     }
 
     private LinkedHashSet<IInstallableUnit> getProjectIUs( File location )
-    {System.err.println("********* looking for IUs for the location  " + location);
+    {
         LinkedHashSet<IInstallableUnit> ius = new LinkedHashSet<IInstallableUnit>( mavenArtifactIUs.get( location ) );
 
         return ius;
