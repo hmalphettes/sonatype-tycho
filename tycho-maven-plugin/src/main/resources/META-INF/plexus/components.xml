@@ -273,5 +273,54 @@
       </configuration>
     </component>
 
+
+    <component>
+      <role>org.apache.maven.lifecycle.mapping.LifecycleMapping</role>
+      <role-hint>eclipse-repository</role-hint>
+      <implementation>
+        org.apache.maven.lifecycle.mapping.DefaultLifecycleMapping
+      </implementation>
+      <configuration>
+        <lifecycles>
+          <lifecycle>
+            <id>default</id>
+            <phases>
+              <validate>
+                org.sonatype.tycho:maven-osgi-packaging-plugin:${project.version}:build-qualifier
+              </validate>
+              <package>
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:prepare-features-and-bundles,
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:publish-repository,
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:archive-products
+              </package>
+              <install>
+                org.apache.maven.plugins:maven-install-plugin:install
+              </install>
+              <deploy>
+                org.apache.maven.plugins:maven-deploy-plugin:deploy
+              </deploy>
+            </phases>
+          </lifecycle>
+        </lifecycles>
+      </configuration>
+    </component>
+    <component>
+      <role>org.apache.maven.artifact.handler.ArtifactHandler</role>
+      <role-hint>eclipse-repository</role-hint>
+      <implementation>
+        org.apache.maven.artifact.handler.DefaultArtifactHandler
+      </implementation>
+      <configuration>
+        <classifier></classifier>
+        <extension>zip</extension>
+        <type>eclipse-repository</type>
+        <packaging>eclipse-repository</packaging>
+        <language>java</language>
+        <addedToClasspath>false</addedToClasspath>
+        <includesDependencies>false</includesDependencies>
+      </configuration>
+    </component>
+
+
   </components>
 </component-set>

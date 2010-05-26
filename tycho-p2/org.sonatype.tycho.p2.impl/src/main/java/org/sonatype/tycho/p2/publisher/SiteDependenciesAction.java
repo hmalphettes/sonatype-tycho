@@ -9,6 +9,7 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.equinox.internal.p2.updatesite.Activator;
 import org.eclipse.equinox.internal.p2.updatesite.SiteFeature;
+import org.eclipse.equinox.internal.p2.updatesite.SiteIU;
 import org.eclipse.equinox.internal.p2.updatesite.UpdateSite;
 import org.eclipse.equinox.p2.core.ProvisionException;
 import org.eclipse.equinox.p2.metadata.IInstallableUnit;
@@ -24,18 +25,21 @@ public class SiteDependenciesAction
     extends AbstractDependenciesAction
 {
     private final File location;
+    private final String projectId;
 
-    private final String id;
+    private String id;
 
-    private final String version;
+    private String version;
 
     private UpdateSite updateSite;
 
-    public SiteDependenciesAction( File location, String id, String version )
+    public SiteDependenciesAction(String projectId, File location, String id, String version )
     {
         this.location = location;
         this.id = id;
         this.version = version;
+        
+        this.projectId = projectId;
     }
 
     @Override
@@ -44,6 +48,18 @@ public class SiteDependenciesAction
         try
         {
             updateSite = UpdateSite.load( location.toURI(), monitor );
+            if (this.id == null)
+            {
+            	SiteIU[] sites = updateSite.getSite().getIUs();
+            	if (sites.length == 1)
+            	{
+            		this.id = sites[0].getID();
+            	}
+            	else
+            	{
+            		this.id = projectId + "-" + location.getName();
+            	}
+            }
         }
         catch ( ProvisionException e )
         {

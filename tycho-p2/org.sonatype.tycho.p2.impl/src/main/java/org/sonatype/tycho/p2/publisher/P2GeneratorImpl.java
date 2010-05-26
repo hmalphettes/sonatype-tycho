@@ -50,7 +50,7 @@ public class P2GeneratorImpl
 {
     private static final String[] SUPPORTED_TYPES = { P2Resolver.TYPE_ECLIPSE_PLUGIN,
         P2Resolver.TYPE_ECLIPSE_TEST_PLUGIN, P2Resolver.TYPE_ECLIPSE_FEATURE, P2Resolver.TYPE_ECLIPSE_UPDATE_SITE,
-        P2Resolver.TYPE_ECLIPSE_APPLICATION };
+        P2Resolver.TYPE_ECLIPSE_APPLICATION, P2Resolver.TYPE_ECLIPSE_REPOSITORY };
 
     /**
      * Whether we need full p2 metadata (false) or just required capabilities.
@@ -248,23 +248,92 @@ public class P2GeneratorImpl
         {
             if ( dependenciesOnly )
             {
-                return new IPublisherAction[] { new SiteDependenciesAction( location, id, version ) };
+                return new IPublisherAction[] { new SiteDependenciesAction(null, location, artifact.getArtifactId(), artifact.getVersion()) };
             }
             else
             {
                 return new IPublisherAction[] { new SiteXMLAction( location.toURI(), null ) };
             }
         }
+        else if ( P2Resolver.TYPE_ECLIPSE_REPOSITORY.equals( packaging ) )
+        {
+        	List<IPublisherAction> actions = new ArrayList<IPublisherAction>();
+        	for (File productFile : getProductFiles(location))
+        	{
+        		String product = productFile.getAbsolutePath();
+        		IProductDescriptor productDescriptor;
+				try
+				{
+					productDescriptor = new ProductFile2( product );
+				}
+				catch (Exception e) {
+					throw new RuntimeException("Unable to parse the product file " + product, e);
+				}
+        		actions.add(dependenciesOnly
+        				? new ProductDependenciesAction(productDescriptor, environments)
+        				: new ProductAction( product, productDescriptor, null, null ));
+        	}
+        	for (File f : getCategoriesFiles(location))
+        	{
+        		actions.add(dependenciesOnly
+        				? new SiteDependenciesAction(artifact.getArtifactId(), f, null, artifact.getVersion())
+        				: new SiteXMLAction( location.toURI(), null ));
+        	}
+            return actions.toArray(new IPublisherAction[actions.size()] );
+        }
         else if ( location.isFile() && location.getName().endsWith( ".jar" ) )
         {
             return new IPublisherAction[] { new BundlesAction( new File[] { location } ) };
         }
 
-        throw new IllegalArgumentException();
+        throw new IllegalArgumentException("Unknown type of packaging " + packaging);
     }
 
     public boolean isSupported( String type )
     {
         return Arrays.asList( SUPPORTED_TYPES ).contains( type );
     }
+    
+    /**
+     * Looks for all files at the base of the project that extension is ".product"
+     * Duplicated in the EclipseRepositoryProject
+     * @param projectLocation
+     * @return The list of product files to parse for an eclipse-repository project
+     */
+    private List<File> getProductFiles( File projectLocation)
+    {
+    	List<File> res = new ArrayList<File>();
+    	for (File f : projectLocation.listFiles())
+    	{
+    		if (f.isFile() && f.getName().endsWith(".product"))
+    		{
+    			res.add(f);
+    		}
+    	}
+    	return res;
+    }
+    
+    /**
+     * Currently uses the same "logic" than the EclipseRepositoryProject
+     * TODO: better.
+     * @param projectLocation
+     * @return The list of site and categories files to parse for an eclipse-repository project
+     */
+    private List<File> getCategoriesFiles(File projectLocation)
+    {
+    	List<File> res = new ArrayList<File>();
+    	for (File f : projectLocation.listFiles())
+    	{
+    		if (f.isFile() && f.getName().endsWith(".xml") && 
+    				(f.getName().indexOf("categor") != -1 ||
+    				 f.getName().indexOf("site") != -1))
+    		{
+    			res.add(f);
+    		}
+    	}
+    	return res;
+    }
+
+    
+    
 }

@@ -18,6 +18,7 @@
     <module>org.sonatype.tycho.p2.maven.repository</module>
     <module>tycho-p2-facade</module>
     <module>tycho-p2-runtime</module>
+    <module>tycho-p2-publisher-director</module>
 <!-- 
     <module>org.sonatype.tycho.p2.impl.test</module>
     <module>org.sonatype.tycho.p2.maven.repository.tests</module>

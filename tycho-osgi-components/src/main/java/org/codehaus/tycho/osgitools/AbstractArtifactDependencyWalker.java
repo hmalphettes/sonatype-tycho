@@ -45,7 +45,11 @@ public abstract class AbstractArtifactDependencyWalker
     public void traverseUpdateSite( UpdateSite site, ArtifactDependencyVisitor visitor )
     {
         Map<ArtifactKey, File> visited = new HashMap<ArtifactKey, File>();
+        traverseUpdateSite(site, visitor, visited);
+    }
 
+    protected void traverseUpdateSite( UpdateSite site, ArtifactDependencyVisitor visitor, Map<ArtifactKey, File> visited )
+    {
         for ( FeatureRef ref : site.getFeatures() )
         {
             traverseFeature( ref, visitor, visited );
@@ -83,7 +87,10 @@ public abstract class AbstractArtifactDependencyWalker
     public void traverseProduct( ProductConfiguration product, ArtifactDependencyVisitor visitor )
     {
         Map<ArtifactKey, File> visited = new HashMap<ArtifactKey, File>();
-
+        traverseProduct(product, visitor, visited);
+    }
+    protected void traverseProduct( ProductConfiguration product, ArtifactDependencyVisitor visitor, Map<ArtifactKey, File> visited )
+    {
         if ( product.useFeatures() )
         {
             for ( FeatureRef ref : product.getFeatures() )
