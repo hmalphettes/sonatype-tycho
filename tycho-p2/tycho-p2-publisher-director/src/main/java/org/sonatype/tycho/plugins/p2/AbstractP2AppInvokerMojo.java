@@ -43,7 +43,7 @@ public abstract class AbstractP2AppInvokerMojo extends AbstractP2Mojo {
 	 */
     protected String[] getApplicationParameter(String application)
     {
-    	return new String[] {"-application"};
+    	return new String[] {"-application", application};
     }
     
     /**
