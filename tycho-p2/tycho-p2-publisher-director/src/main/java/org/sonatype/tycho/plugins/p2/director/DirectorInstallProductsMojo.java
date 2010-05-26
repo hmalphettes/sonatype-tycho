@@ -1,22 +1,13 @@
 package org.sonatype.tycho.plugins.p2.director;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.LineNumberReader;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.StringTokenizer;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
-import org.codehaus.plexus.util.FileUtils;
-import org.codehaus.plexus.util.IOUtil;
 import org.codehaus.plexus.util.cli.Commandline;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.model.ProductConfiguration;
@@ -31,7 +22,7 @@ import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
  * 
  * @goal archive-products
  */
-public class ArchiveProductsMojo extends AbstractP2AppInvokerMojo {
+public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 	
 	public static final String DIRECTOR_APP_NAME = "org.eclipse.equinox.p2.director";
 
@@ -69,7 +60,6 @@ public class ArchiveProductsMojo extends AbstractP2AppInvokerMojo {
 					});
 			
 			super.execute(cli, null);
-			cleanup(currentTarget);
 		}
 		catch (IOException ioe)
 		{
@@ -143,82 +133,4 @@ public class ArchiveProductsMojo extends AbstractP2AppInvokerMojo {
     	return super.getProductFiles();
     }
     
-    /**
-     * <p>
-     * After P2 Director has installed the IUs and regenerated a couple of files it
-     * seems there are a couple of things not quite right.
-     * Maybe some parameters are missing when we invoke the P2 director or
-     * there are enhancements to be filed.
-     * </p>
-     * Here are the tweaks:
-     * <ul
-     * <li> the configuration/org.eclipse.update/platform.xml file is not taking
-     * into account the -roaming parameter
-     * and use an aboslute path to the folder where the features are defined
-     * we override that line.</li>
-     * </ul>
-     * 
-     * @param targetEclipse
-     * @throws MojoExecutionException
-     * @throws MojoFailureException
-     */
-    private void cleanup(File targetEclipse) throws MojoExecutionException, MojoFailureException
-    {
-    	//now update the platform.xml
-    	//this is certainly some quick code. hoping to do not have to do this when we catch up with p2.
-    	File platformXml = new File(targetEclipse, "configuration/org.eclipse.update/platform.xml");
-    	if (!platformXml.exists())
-    	{
-    		//complain?
-    		return;
-    	}
-    	try {
-			FileUtils.copyFile(platformXml, new File(targetEclipse, "configuration/org.eclipse.update/platform.xml.before-force-roaming"));
-		} catch (IOException e) {
-			getLog().warn("Unable to save a backup of the config.ini file", e);
-		}
-    	LineNumberReader lr = null;
-    	BufferedWriter writer = null;
-    	try
-    	{
-    		lr = new LineNumberReader(new InputStreamReader(new FileInputStream(platformXml), "UTF-8"));
-    		LinkedList<String> lines = new LinkedList<String>();
-    		String line = lr.readLine();
-    		boolean needUpdate = false;
-    		while (line != null)
-    		{
-    			if (line.trim().startsWith("<site ") && line.indexOf("url=\"file:") != -1)
-    			{
-    				needUpdate = true;
-    				line = "	<site enabled=\"true\" updateable=\"true\" policy=\"USER-EXCLUDE\" url=\"platform:/base/\">";
-    			}
-    			lines.add(line);
-    			line = lr.readLine();
-    		}
-    		IOUtil.close(lr);
-    		lr = null;
-    		if (needUpdate)
-    		{
-    			writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(platformXml)));
-    			while (!lines.isEmpty())
-    			{
-    				writer.write(lines.removeFirst());
-    				writer.newLine();
-    			}
-    		}
-    	}
-    	catch (IOException ioe)
-    	{
-    		throw new MojoExecutionException("Unable to update the " + platformXml.getAbsolutePath(), ioe);
-    	}
-    	finally
-    	{
-    		if (lr != null) IOUtil.close(lr);
-    		if (writer != null) IOUtil.close(writer);
-    	}
-    	
-        
-    }
-
-
 }
