@@ -136,7 +136,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 	throws MojoExecutionException {
         try
         {
-        	File expandedProductFile = new File(project.getBuild().getOutputDirectory(), productFile.getName());
+        	File expandedProductFile = new File(project.getBuild().getDirectory(), productFile.getName());
         	ProductConfiguration productConfiguration = ProductConfiguration.read(productFile);
         	
         	//this is where we can accomodate things.
