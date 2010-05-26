@@ -100,22 +100,25 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 
 	protected void publishCategories()
 	throws MojoExecutionException, MojoFailureException {
-		try
+		for (File categoryDef : getCategoriesFiles())
 		{
-			// see http://wiki.eclipse.org/Equinox/p2/Publisher#Category_Publisher
-			
-			Commandline cli = super.getCommandLine(CATEGORIES_PUBLISHER_APP_NAME);
-			cli.addArguments(new String[] {
-					"-metadataRepository", getRepositoryValue(),
-					"-categoryDefinition", conf.location.getCanonicalPath(),
-					"-categoryQualifier"});
-			cli.addArguments(getCompressFlag());
-			
-			super.execute(cli, null);
-		}
-		catch (IOException ioe)
-		{
-			throw new MojoExecutionException("Unable to execute the publisher", ioe);
+			try
+			{
+				// see http://wiki.eclipse.org/Equinox/p2/Publisher#Category_Publisher
+				
+				Commandline cli = super.getCommandLine(CATEGORIES_PUBLISHER_APP_NAME);
+				cli.addArguments(new String[] {
+						"-metadataRepository", getRepositoryValue(),
+						"-categoryDefinition", categoryDef.getCanonicalPath(),
+						"-categoryQualifier"});
+				cli.addArguments(getCompressFlag());
+				
+				super.execute(cli, null);
+			}
+			catch (IOException ioe)
+			{
+				throw new MojoExecutionException("Unable to execute the publisher for the categories definition " + categoryDef.getAbsolutePath(), ioe);
+			}
 		}
 	}
 	
