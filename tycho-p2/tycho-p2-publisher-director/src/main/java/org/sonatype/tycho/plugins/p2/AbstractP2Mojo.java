@@ -5,9 +5,11 @@ import java.util.List;
 
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
+import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.codehaus.plexus.PlexusContainer;
+import org.codehaus.plexus.archiver.zip.ZipArchiver;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.codehaus.tycho.ArtifactDependencyWalker;
 import org.codehaus.tycho.ArtifactDescription;
@@ -145,5 +147,50 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
     {
     	return getEclipseRepositoryProject().getCategoriesFiles(project);
     }
+    
+    protected void createArchive( File target, String classifier )
+    throws MojoExecutionException
+	{
+	    ZipArchiver zipper;
+	    try
+	    {
+	        zipper = (ZipArchiver) plexus.lookup( ZipArchiver.ROLE, "zip" );
+	    }
+	    catch ( ComponentLookupException e )
+	    {
+	        throw new MojoExecutionException( "Unable to resolve ZipArchiver", e );
+	    }
+	
+	    StringBuilder filename = new StringBuilder( project.getBuild().getFinalName() );
+	    if ( classifier != null )
+	    {
+	        filename.append( '-' ).append( classifier );
+	    }
+	    filename.append( ".zip" );
+	
+	    File destFile = new File( project.getBuild().getDirectory(), filename.toString() );
+	
+	    try
+	    {
+	        zipper.addDirectory( target );
+	        zipper.setDestFile( destFile );
+	        zipper.createArchive();
+	    }
+	    catch ( Exception e )
+	    {
+	        throw new MojoExecutionException( "Error packing product", e );
+	    }
+	
+	    if ( classifier != null )
+	    {
+	        projectHelper.attachArtifact( project, destFile, classifier );
+	    }
+	    else
+	    {
+	        // main artifact
+	        project.getArtifact().setFile( destFile );
+	    }
+	}
+
 
 }

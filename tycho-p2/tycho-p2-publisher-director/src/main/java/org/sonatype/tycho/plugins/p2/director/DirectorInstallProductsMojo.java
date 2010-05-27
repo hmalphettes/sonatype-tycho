@@ -3,7 +3,9 @@ package org.sonatype.tycho.plugins.p2.director;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.maven.plugin.MojoExecutionException;
@@ -25,6 +27,8 @@ import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
 public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 	
 	public static final String DIRECTOR_APP_NAME = "org.eclipse.equinox.p2.director";
+	
+	private Map<String,File> _profiles = new HashMap<String,File>();
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		for (File productFile : getProductFilesToArchive())
@@ -42,7 +46,13 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 		{
 			ProductConfiguration productConfiguration = ProductConfiguration.read(productFile);
 			String profile  = getProfileValue(productConfiguration);
-			File currentTarget = getTarget(env);
+			File already = _profiles.put(profile, productFile);
+			if (already != null && !already.equals(productFile))
+			{//profile need to be a little unique if not very unique.
+				throw new MojoFailureException("There are at least 2 product files with the same profile: " +
+						profile + " is the profile name for " + already.getName() + " and " + productFile.getName());
+			}
+			File currentTarget = getTarget(env, profile);
 			//see http://wiki.eclipse.org/Equinox_p2_director_application
 			Commandline cli = super.getCommandLine(DIRECTOR_APP_NAME);
 			cli.addArguments(new String[] {
@@ -60,6 +70,8 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 					});
 			
 			super.execute(cli, null);
+			
+			super.createArchive(currentTarget, profile + "-" + toString(env));
 		}
 		catch (IOException ioe)
 		{
@@ -74,6 +86,7 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
     	//let's do something a bit nicer:
     	//the last segment of the product id. unless it is 'product'. then look before.
     	String productId = productConfiguration.getId();
+    	System.err.println("Computing the profile name from the product id: " + productId);
     	StringTokenizer tokenizer = new StringTokenizer(productId, ".");
     	ArrayList<String> toks = new ArrayList<String>();
     	while (tokenizer.hasMoreElements())
@@ -83,6 +96,7 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
     	String[] segs = toks.toArray(new String[toks.size()]);
     	for (int i = segs.length -1; i >= 0; i--)
     	{
+    		System.err.println("looking at seg " + segs[i]);
     		if (segs[i].toLowerCase().indexOf("prod") == -1)
     		{
     			if (i > 0 && segs[i].toLowerCase().equals("sdk"))
@@ -109,9 +123,9 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 	 * @param environment
 	 * @return The built folder where the product is installed and later archived.
 	 */
-    private File getTarget( TargetEnvironment environment )
+    private File getTarget( TargetEnvironment environment, String profile )
     {
-        File target = new File( project.getBuild().getDirectory(), toString( environment ) );
+        File target = new File( project.getBuild().getDirectory(), toString( environment ) + "/" + profile );
         target.mkdirs();
 
         return target;

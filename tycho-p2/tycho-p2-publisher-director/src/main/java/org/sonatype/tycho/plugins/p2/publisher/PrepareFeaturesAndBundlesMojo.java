@@ -1,7 +1,17 @@
 package org.sonatype.tycho.plugins.p2.publisher;
 
+import java.io.File;
+
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.project.MavenProject;
+import org.codehaus.tycho.ArtifactDependencyVisitor;
+import org.codehaus.tycho.FeatureDescription;
+import org.codehaus.tycho.buildversion.VersioningHelper;
+import org.codehaus.tycho.eclipsepackaging.UpdateSiteAssembler;
+import org.codehaus.tycho.model.FeatureRef;
+import org.codehaus.tycho.model.UpdateSite;
+import org.codehaus.tycho.model.UpdateSite.SiteFeatureRef;
 import org.sonatype.tycho.plugins.p2.AbstractP2Mojo;
 
 /**
@@ -18,13 +28,42 @@ public class PrepareFeaturesAndBundlesMojo extends AbstractP2Mojo {
 		targetRepository.mkdirs();
     	FeaturesAndBundlesAssembler assembler = new FeaturesAndBundlesAssembler(session, targetRepository);
         // expandVersion();
-        try
-        {
-            getDependencyWalker().walk( assembler );
-        }
-        catch ( Exception e )
-        {
-            throw new MojoExecutionException( e.getMessage(), e );
+    	getDependencyWalker().walk( assembler );
+        
+    	//also update the features versions.
+    	for (File categoryDef : getCategoriesFiles())
+		{
+			try
+			{
+				UpdateSite site = UpdateSite.read(categoryDef);
+				getDependencyWalker().traverseUpdateSite( site, new ArtifactDependencyVisitor()
+				{
+	                @Override
+	                public boolean visitFeature( FeatureDescription feature )
+	                {
+	                    FeatureRef featureRef = feature.getFeatureRef();
+	                    String id = featureRef.getId();
+	                    MavenProject otherProject = feature.getMavenProject();
+	                    String version;
+	                    if ( otherProject != null )
+	                    {
+	                        version = VersioningHelper.getExpandedVersion( otherProject, featureRef.getVersion() );
+	                    }
+	                    else
+	                    {
+	                        version = feature.getKey().getVersion();
+	                    }
+	                    String url = UpdateSiteAssembler.FEATURES_DIR + id + "_" + version + ".jar";
+	                    ( (SiteFeatureRef) featureRef ).setUrl( url );
+	                    featureRef.setVersion( version );
+	                    return false; // don't traverse included features
+	                }
+	            } );
+			}
+            catch ( Exception e )
+            {
+                throw new MojoExecutionException( e.getMessage(), e );
+            }
         }
     }
 

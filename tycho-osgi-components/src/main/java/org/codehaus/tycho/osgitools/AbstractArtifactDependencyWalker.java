@@ -87,10 +87,6 @@ public abstract class AbstractArtifactDependencyWalker
     public void traverseProduct( ProductConfiguration product, ArtifactDependencyVisitor visitor )
     {
         Map<ArtifactKey, File> visited = new HashMap<ArtifactKey, File>();
-        traverseProduct(product, visitor, visited);
-    }
-    protected void traverseProduct( ProductConfiguration product, ArtifactDependencyVisitor visitor, Map<ArtifactKey, File> visited )
-    {
         if ( product.useFeatures() )
         {
             for ( FeatureRef ref : product.getFeatures() )

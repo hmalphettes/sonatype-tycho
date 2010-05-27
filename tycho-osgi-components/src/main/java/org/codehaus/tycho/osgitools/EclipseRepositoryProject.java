@@ -45,14 +45,13 @@ public class EclipseRepositoryProject extends AbstractArtifactBasedProject {
                 									  getEnvironments( project, environment ) )
         {
         	public void walk(ArtifactDependencyVisitor visitor) {
-        		Map<ArtifactKey, File> visited = new HashMap<ArtifactKey, File>();
-				for (UpdateSite site : sites)
+        		for (UpdateSite site : sites)
 				{
-					traverseUpdateSite(site, visitor, visited);
+					traverseUpdateSite(site, visitor);
 				}
 				for (ProductConfiguration product : products)
 				{
-					traverseProduct(product, visitor, visited);
+					traverseProduct(product, visitor);
 				}
 			}
 		};

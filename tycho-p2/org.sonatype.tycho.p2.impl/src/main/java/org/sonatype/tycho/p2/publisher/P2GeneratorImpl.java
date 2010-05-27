@@ -248,7 +248,7 @@ public class P2GeneratorImpl
         {
             if ( dependenciesOnly )
             {
-                return new IPublisherAction[] { new SiteDependenciesAction(null, location, artifact.getArtifactId(), artifact.getVersion()) };
+                return new IPublisherAction[] { new SiteDependenciesAction(null, location, id, version) };
             }
             else
             {
@@ -273,11 +273,11 @@ public class P2GeneratorImpl
         				? new ProductDependenciesAction(productDescriptor, environments)
         				: new ProductAction( product, productDescriptor, null, null ));
         	}
-        	for (File f : getCategoriesFiles(location))
+        	for (File site : getCategoriesFiles(location))
         	{
         		actions.add(dependenciesOnly
-        				? new SiteDependenciesAction(artifact.getArtifactId(), f, null, artifact.getVersion())
-        				: new SiteXMLAction( location.toURI(), null ));
+        				? new SiteDependenciesAction(id, site, null, version)
+        				: new SiteXMLAction( site.toURI(), null ));
         	}
             return actions.toArray(new IPublisherAction[actions.size()] );
         }

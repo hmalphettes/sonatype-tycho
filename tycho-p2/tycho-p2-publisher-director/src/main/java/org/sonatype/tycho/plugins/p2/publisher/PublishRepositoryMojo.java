@@ -44,6 +44,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
     	publishFeaturesAndBundles();
 		publishProducts();
 		publishCategories();
+		archiveRepository();
     }
 	
 	protected void publishFeaturesAndBundles()
@@ -112,7 +113,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 				Commandline cli = super.getCommandLine(CATEGORIES_PUBLISHER_APP_NAME);
 				cli.addArguments(new String[] {
 						"-metadataRepository", getRepositoryValue(),
-						"-categoryDefinition", categoryDef.getCanonicalPath(),
+						"-categoryDefinition", categoryDef.toURI().toURL().toExternalForm(),
 						"-categoryQualifier"});
 				cli.addArguments(getCompressFlag());
 				
@@ -120,9 +121,19 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 			}
 			catch (IOException ioe)
 			{
-				throw new MojoExecutionException("Unable to execute the publisher for the categories definition " + categoryDef.getAbsolutePath(), ioe);
+				throw new MojoExecutionException("Unable to execute the publisher" +
+						" for the categories definition " + categoryDef.getAbsolutePath(), ioe);
 			}
 		}
+	}
+	
+	/**
+	 * Archive the resulting repository as a zip and set it as the main artifact of this project.
+	 * @throws MojoExecutionException
+	 */
+	protected void archiveRepository() throws MojoExecutionException
+	{
+		super.createArchive(targetRepository, null);
 	}
 	
 	private static class ExpandedProductConfiguration

@@ -1,11 +1,13 @@
 package org.sonatype.tycho.p2.publisher;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.equinox.internal.p2.updatesite.Activator;
 import org.eclipse.equinox.internal.p2.updatesite.SiteFeature;
@@ -19,6 +21,8 @@ import org.eclipse.equinox.p2.metadata.Version;
 import org.eclipse.equinox.p2.metadata.VersionRange;
 import org.eclipse.equinox.p2.publisher.IPublisherInfo;
 import org.eclipse.equinox.p2.publisher.IPublisherResult;
+import org.eclipse.equinox.p2.query.IQueryResult;
+import org.eclipse.equinox.p2.query.QueryUtil;
 
 @SuppressWarnings( "restriction" )
 public class SiteDependenciesAction
@@ -47,7 +51,18 @@ public class SiteDependenciesAction
     {
         try
         {
-            updateSite = UpdateSite.load( location.toURI(), monitor );
+        	if (location.isDirectory())
+        	{
+        		updateSite = UpdateSite.load( location.toURI(), monitor );
+        	}
+        	else if (location.getName().equals("site.xml"))
+        	{
+        		updateSite = UpdateSite.load( location.getParentFile().toURI(), monitor );
+        	}
+        	else
+        	{
+        		updateSite = UpdateSite.loadCategoryFile(location.toURI(), monitor);
+        	}
             if (this.id == null)
             {
             	SiteIU[] sites = updateSite.getSite().getIUs();
@@ -63,10 +78,13 @@ public class SiteDependenciesAction
         }
         catch ( ProvisionException e )
         {
+        	//don't remove the system errors otherwise the fact that the site
+        	//or categories were not loaded is never reported.
+        	System.err.println("Failed to load " + location.toURI());
+        	e.printStackTrace();
             return new Status( IStatus.ERROR, Activator.ID, "Error generating site xml action.", e );
         }
-
-        return super.perform( publisherInfo, results, monitor );
+		return super.perform( publisherInfo, results, monitor );
     }
 
     @Override
