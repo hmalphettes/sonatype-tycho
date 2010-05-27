@@ -16,6 +16,7 @@ import org.codehaus.plexus.util.io.RawInputStreamFacade;
 import org.codehaus.tycho.ArtifactDescription;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.TychoProject;
+import org.codehaus.tycho.buildversion.VersioningHelper;
 import org.codehaus.tycho.model.ProductConfiguration;
 import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
 
@@ -142,9 +143,21 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
         	ProductConfiguration productConfiguration = ProductConfiguration.read(productFile);
         	
         	//this is where we can accomodate things.
+        	//in particular need to expand the version otherwise the published artifact still has the '.qualifier'
+            String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
+            String productVersion = VersioningHelper.getExpandedVersion( project, version );
+            productConfiguration.setVersion( productVersion.toString() );
         	
         	ProductConfiguration.write( productConfiguration, expandedProductFile );
-        	File p2inf = new File(project.getBasedir(), "p2.inf");
+        	
+        	//look for a product specific p2inf file
+        	File p2inf = new File(project.getBasedir(), productFile.getName() + ".p2.inf");
+        	
+        	if (!p2inf.canRead())
+        	{
+        		//try the default one.
+        		p2inf = new File(project.getBasedir(), "p2.inf");
+        	}
             if ( p2inf.canRead() )
             {
             	File newP2Inf = new File( expandedProductFile.getParentFile(), p2inf.getName() );
