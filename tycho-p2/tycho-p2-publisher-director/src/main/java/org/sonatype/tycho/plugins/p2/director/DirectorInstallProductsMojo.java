@@ -2,17 +2,22 @@ package org.sonatype.tycho.plugins.p2.director;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 
+import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.codehaus.plexus.util.cli.Commandline;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.model.ProductConfiguration;
+import org.codehaus.tycho.p2.P2ArtifactRepositoryLayout;
 import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
 
 /**
@@ -27,6 +32,13 @@ import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
 public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 	
 	public static final String DIRECTOR_APP_NAME = "org.eclipse.equinox.p2.director";
+	
+	/**
+	 * Set to false to use the remote repositories when invoking director.
+	 * TODO: find a way to use the tycho cache.
+	 * @parameter default-value="true"
+	 */
+	private boolean standaloneRepository;
 	
 	private Map<String,File> _profiles = new HashMap<String,File>();
 
@@ -57,8 +69,7 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 			Commandline cli = super.getCommandLine(DIRECTOR_APP_NAME);
 			cli.addArguments(new String[] {
 					"-installIU", productConfiguration.getId(),//
-					"-metadataRepository", targetRepository.toURI().toURL().toExternalForm(), //
-					"-artifactRepository", targetRepository.toURI().toURL().toExternalForm(), //
+					"-repository", getRepositories(), //
 					"-destination",	currentTarget.getCanonicalPath(),
 					"-profile",	profile,
 					"-profileProperties", "org.eclipse.update.install.features=true",
@@ -86,7 +97,6 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
     	//let's do something a bit nicer:
     	//the last segment of the product id. unless it is 'product'. then look before.
     	String productId = productConfiguration.getId();
-    	System.err.println("Computing the profile name from the product id: " + productId);
     	StringTokenizer tokenizer = new StringTokenizer(productId, ".");
     	ArrayList<String> toks = new ArrayList<String>();
     	while (tokenizer.hasMoreElements())
@@ -96,7 +106,6 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
     	String[] segs = toks.toArray(new String[toks.size()]);
     	for (int i = segs.length -1; i >= 0; i--)
     	{
-    		System.err.println("looking at seg " + segs[i]);
     		if (segs[i].toLowerCase().indexOf("prod") == -1)
     		{
     			if (i > 0 && segs[i].toLowerCase().equals("sdk"))
@@ -115,7 +124,7 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
     	{
     		profile = "profile";
     	}
-    	getLog().info("Computed profile " + profile);
+    	getLog().info("Computed profile " + profile + " for the product " + productId);
     	return profile;
 	}
 
@@ -145,6 +154,42 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
     protected List<File> getProductFilesToArchive()
     {
     	return super.getProductFiles();
+    }
+    
+    /**
+     * @return The repositories used by director to install the app.
+     */
+    private String getRepositories()
+    {
+    	String thisRepo = null;
+		try {
+			thisRepo = targetRepository.toURI().toURL().toExternalForm();
+		} catch (MalformedURLException e) {
+			//will never happen but hey...
+			getLog().warn("unable to make a url", e);
+			thisRepo = "file:" + targetRepository.getAbsolutePath();
+		}
+    	if (standaloneRepository)
+    	{
+    		return thisRepo;
+    	}
+    	StringBuilder sb = new StringBuilder(thisRepo);
+    	
+    	//get the various p2 repositories and add them to the list:
+    	Set<String> urls = new HashSet<String>();
+    	for (Repository repo : project.getRepositories())
+    	{
+    		if (P2ArtifactRepositoryLayout.ID.equals(repo.getLayout()))
+    		{
+    			String url = repo.getUrl();
+    			if (urls.add(url))
+    			{
+    				sb.append(",");
+    				sb.append(url);
+    			}
+    		}
+    	}
+    	return sb.toString();
     }
     
 }

@@ -17,6 +17,8 @@ import org.codehaus.tycho.ArtifactDescription;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.TychoProject;
 import org.codehaus.tycho.buildversion.VersioningHelper;
+import org.codehaus.tycho.model.FeatureRef;
+import org.codehaus.tycho.model.PluginRef;
 import org.codehaus.tycho.model.ProductConfiguration;
 import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
 
@@ -39,7 +41,14 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 	public static String PRODUCT_PUBLISHER_APP_NAME = "org.eclipse.equinox.p2.publisher.ProductPublisher";
 	public static String CATEGORIES_PUBLISHER_APP_NAME = "org.eclipse.equinox.p2.publisher.CategoryPublisher";
 
-	
+    /**
+     * Build qualifier. Recommended way to set this parameter is using build-qualifier goal.
+     * 
+     * @parameter expression="${buildQualifier}"
+     */
+    protected String qualifier;
+
+
 	public void execute() throws MojoExecutionException, MojoFailureException {
     	publishFeaturesAndBundles();
 		publishProducts();
@@ -158,6 +167,24 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
             String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
             String productVersion = VersioningHelper.getExpandedVersion( project, version );
             productConfiguration.setVersion( productVersion.toString() );
+            
+            //now same for the features and bundles that version would be something else than "0.0.0"
+            for (FeatureRef featRef : productConfiguration.getFeatures())
+            {
+            	if (featRef.getVersion().indexOf(VersioningHelper.QUALIFIER) != -1)
+            	{
+            		String newVersion = featRef.getVersion().replace(VersioningHelper.QUALIFIER, qualifier);
+            		featRef.setVersion(newVersion);
+            	}
+            }
+            for (PluginRef plugRef : productConfiguration.getPlugins())
+            {
+            	if (plugRef.getVersion().indexOf(VersioningHelper.QUALIFIER) != -1)
+            	{
+            		String newVersion = plugRef.getVersion().replace(VersioningHelper.QUALIFIER, qualifier);
+            		plugRef.setVersion(newVersion);
+            	}
+            }
         	
         	ProductConfiguration.write( productConfiguration, expandedProductFile );
         	
