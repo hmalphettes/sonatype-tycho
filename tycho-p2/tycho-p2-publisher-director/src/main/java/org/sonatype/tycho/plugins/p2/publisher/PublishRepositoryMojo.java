@@ -3,6 +3,7 @@ package org.sonatype.tycho.plugins.p2.publisher;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -37,9 +38,12 @@ import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
  */
 public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 	
-	public static String FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME = "org.eclipse.equinox.p2.publisher.FeaturesAndBundlesPublisher";
-	public static String PRODUCT_PUBLISHER_APP_NAME = "org.eclipse.equinox.p2.publisher.ProductPublisher";
-	public static String CATEGORIES_PUBLISHER_APP_NAME = "org.eclipse.equinox.p2.publisher.CategoryPublisher";
+	public static String PUBLISHER_BUNDLE_ID = "org.sonatype.tycho.p2.publisher";
+	public static String PUBLISHER_ECLIPSE_BUNDLE_ID = "org.eclipse.equinox.p2.publisher";
+	
+	public static String FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME = PUBLISHER_BUNDLE_ID + ".FeaturesAndBundlesPublisher";
+	public static String PRODUCT_PUBLISHER_APP_NAME = PUBLISHER_ECLIPSE_BUNDLE_ID + ".ProductPublisher";
+	public static String CATEGORIES_PUBLISHER_APP_NAME = PUBLISHER_ECLIPSE_BUNDLE_ID + ".CategoryPublisher";
 
     /**
      * Build qualifier. Recommended way to set this parameter is using build-qualifier goal.
@@ -47,6 +51,47 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
      * @parameter expression="${buildQualifier}"
      */
     protected String qualifier;
+    
+    /**
+     * @parameter default-value="true"
+     */
+    protected boolean compress;
+
+    /**
+     * @parameter default-value="false"
+     */
+    protected boolean pack200;
+    
+    /**
+     * @parameter default-value="tooling"
+     */
+    protected String flavor;
+    
+    //download stats support
+    /**
+     * The url of the download tracking server.
+     * See http://wiki.eclipse.org/Equinox_p2_download_stats and
+     * https://bugs.eclipse.org/bugs/show_bug.cgi?id=310132
+     * @parameter 
+     */
+    protected String statsURI;
+    
+    /**
+     * Comma separated list of artifacts ids to track in the downloads
+     * @parameter 
+     */
+    protected String statsTrackedArtifacts;
+    
+    /**
+     * @parameter 
+     */
+    protected String statsPrefix;
+    
+    /**
+     * @parameter 
+     */
+    protected String statsSuffix;
+    
 
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -63,12 +108,13 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 			//see http://wiki.eclipse.org/Equinox/p2/Publisher#Features_And_Bundles_Publisher_Application
 			Commandline cli = super.getCommandLine(FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME);
 			cli.addArguments(new String[] {
-					"-metadataRepository", getRepositoryValue(),
 					"-artifactRepository", getRepositoryValue(),
+					"-metadataRepository", getRepositoryValue(),
 					"-source", targetRepository.getCanonicalPath(),
 					"-publishArtifacts"});
 			cli.addArguments(getConfigsParameter());
 			cli.addArguments(getCompressFlag());
+			cli.addArguments(getP2DownloadStats());
 			
 			super.execute(cli, null);
 		}
@@ -92,8 +138,8 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 				
 				Commandline cli = super.getCommandLine(PRODUCT_PUBLISHER_APP_NAME);
 				cli.addArguments(new String[] {
-						"-metadataRepository", getRepositoryValue(),
 						"-artifactRepository", getRepositoryValue(),
+						"-metadataRepository", getRepositoryValue(),
 						"-productFile", conf.location.getCanonicalPath(),
 						"-append",
 						"-executables", getEquinoxExecutableFeature(),
@@ -125,6 +171,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 						"-categoryDefinition", categoryDef.toURI().toURL().toExternalForm(),
 						"-categoryQualifier"});
 				cli.addArguments(getCompressFlag());
+				cli.addArguments(getP2DownloadStats());
 				
 				super.execute(cli, null);
 			}
@@ -166,7 +213,8 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
         	//in particular need to expand the version otherwise the published artifact still has the '.qualifier'
             String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
             String productVersion = VersioningHelper.getExpandedVersion( project, version );
-            productConfiguration.setVersion( productVersion.toString() );
+            productVersion = productVersion.replace(VersioningHelper.QUALIFIER, qualifier);
+            productConfiguration.setVersion( productVersion );
             
             //now same for the features and bundles that version would be something else than "0.0.0"
             for (FeatureRef featRef : productConfiguration.getFeatures())
@@ -260,7 +308,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 	 */
 	private String[] getFlavorParameter(String productId)
 	{
-		return new String[] {"-flavor", "tooling"};
+		return new String[] {"-flavor", flavor == null || flavor.length() == 0 ? "tooling" : flavor};
 	}
 	
 	/**
@@ -268,7 +316,35 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 	 */
 	private String[] getCompressFlag()
 	{
-		return new String[] {"-compress"};
+		return compress ? new String[] {"-compress"} : new String[0];
+	}
+	
+	/**
+	 * @return The '-compress' flag or empty if we don't want to compress.
+	 */
+	private String[] getP2DownloadStats() throws MojoExecutionException
+	{
+		ArrayList<String> params = new ArrayList<String>();
+		if (statsURI != null) {
+			params.add("-p2.statsURI");
+			params.add(statsURI);
+			if (statsTrackedArtifacts == null || statsTrackedArtifacts.length() == 0) {
+				throw new MojoExecutionException("missing configuration parameter for statsTrackedBundles");
+			}
+			params.add("-p2.statsTrackedBundles");
+			params.add(statsTrackedArtifacts);
+			if (statsPrefix != null)
+			{
+				params.add("-p2.statsPrefix");
+				params.add(statsPrefix);
+			}
+			if (statsSuffix != null)
+			{
+				params.add("-p2.statsSuffix");
+				params.add(statsSuffix);
+			}
+		}
+		return params.toArray(new String[params.size()]);
 	}
 	
     /**

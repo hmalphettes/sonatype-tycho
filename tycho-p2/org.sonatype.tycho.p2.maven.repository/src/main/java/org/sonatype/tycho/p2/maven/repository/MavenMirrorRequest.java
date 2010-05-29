@@ -50,6 +50,10 @@ public class MavenMirrorRequest
                 {
                     localRepository.addDescriptor( descriptor );
                 }
+                else
+                {
+//                	((AbstractMavenArtifactRepository) source).getOutputStream(descriptor)
+                }
             }
 
             if ( result == null )
