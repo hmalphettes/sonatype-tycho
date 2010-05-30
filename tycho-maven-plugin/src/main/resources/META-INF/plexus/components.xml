@@ -288,9 +288,13 @@
               <validate>
                 org.sonatype.tycho:maven-osgi-packaging-plugin:${project.version}:build-qualifier
               </validate>
-              <package>
+              <process-classes>
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:prepare-features-and-bundles,
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:publish-repository,
+              </process-classes>
+              <!-- the pack and sign mojos can be invoked here during the prepare-package phase -->
+              <package>
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:archive-repository
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:archive-products
               </package>
               <install>
