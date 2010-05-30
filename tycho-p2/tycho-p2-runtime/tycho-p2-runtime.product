@@ -52,8 +52,8 @@
       <plugin id="org.eclipse.equinox.p2.jarprocessor"/>
       <plugin id="org.eclipse.equinox.p2.metadata"/>
       <plugin id="org.eclipse.equinox.p2.metadata.repository"/>
-      <plugin id="org.eclipse.equinox.p2.publisher"/>
-<!--      <plugin id="org.eclipse.equinox.p2.publisher" version="1.1.0.fixmacosx"/> -->
+      <plugin id="org.eclipse.equinox.p2.publisher" version="1.1.0.fixmacosx"/>
+<!--      <plugin id="org.eclipse.equinox.p2.publisher"/> -->
       <plugin id="org.eclipse.equinox.p2.repository.tools"/>
       <plugin id="org.eclipse.equinox.p2.repository"/>
       <plugin id="org.eclipse.equinox.p2.touchpoint.eclipse"/>
