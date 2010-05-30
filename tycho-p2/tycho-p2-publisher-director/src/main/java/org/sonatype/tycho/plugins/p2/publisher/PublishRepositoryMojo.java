@@ -92,6 +92,14 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
      */
     protected String statsSuffix;
     
+    /**
+     * Artifact repository name
+     * 
+     * @parameter default-value="${project.name} Artifacts"
+     * @required
+     */
+    protected String artifactRepositoryName;
+    
 
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
@@ -114,6 +122,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 					"-publishArtifacts"});
 			cli.addArguments(getConfigsParameter());
 			cli.addArguments(getCompressFlag());
+			cli.addArguments(getArtifactRepositoryName());
 			cli.addArguments(getP2DownloadStats());
 			
 			super.execute(cli, null);
@@ -299,6 +308,11 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 			getLog().warn("Unexpected exception", e);
 			return "file:" + targetRepository.getAbsolutePath();
 		}
+	}
+	
+	private String[] getArtifactRepositoryName()
+	{
+		return new String[] {"-artifactRepositoryName", artifactRepositoryName};
 	}
 	
 	/**

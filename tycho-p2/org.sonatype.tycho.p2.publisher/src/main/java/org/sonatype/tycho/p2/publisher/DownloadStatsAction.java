@@ -91,7 +91,6 @@ public class DownloadStatsAction extends AbstractPublisherAction {
 	@Override
 	public IStatus perform(IPublisherInfo publisherInfo,
 			IPublisherResult results, IProgressMonitor monitor) {
-		
 		if (statsURI == null) {
 			return Status.OK_STATUS;
 		}
