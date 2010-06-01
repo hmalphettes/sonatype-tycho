@@ -106,7 +106,6 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
     	publishFeaturesAndBundles();
 		publishProducts();
 		publishCategories();
-		archiveRepository();
     }
 	
 	protected void publishFeaturesAndBundles()
@@ -191,16 +190,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 			}
 		}
 	}
-	
-	/**
-	 * Archive the resulting repository as a zip and set it as the main artifact of this project.
-	 * @throws MojoExecutionException
-	 */
-	protected void archiveRepository() throws MojoExecutionException
-	{
-		super.createArchive(targetRepository, null);
-	}
-	
+		
 	private static class ExpandedProductConfiguration
 	{
 		public ProductConfiguration parsed;

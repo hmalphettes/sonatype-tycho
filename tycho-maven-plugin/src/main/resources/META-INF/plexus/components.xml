@@ -294,6 +294,7 @@
               </process-classes>
               <!-- the pack and sign mojos can be invoked here during the prepare-package phase -->
               <package>
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:fix-checksums,
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:archive-repository,
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:archive-products
               </package>

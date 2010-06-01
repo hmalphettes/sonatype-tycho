@@ -22,8 +22,7 @@ public class RecreateRepositoryApplication extends org.eclipse.equinox.p2.intern
 implements IApplication {
 
 	public Object start(IApplicationContext context) throws Exception {
-		Map<?, ?> args = context.getArguments();
-		initializeFromArguments((String[]) args.get(IApplicationContext.APPLICATION_ARGS));
+		initializeFromArguments((String[]) context.getArguments().get(IApplicationContext.APPLICATION_ARGS));
 		run(new NullProgressMonitor());
 		return IApplication.EXIT_OK;
 	}
@@ -56,6 +55,7 @@ implements IApplication {
 					URI uri = RepositoryHelper.localRepoURIHelper(URIUtil.fromString(arg));
 					sourceRepo.setLocation(uri);
 					super.setArtifactRepository(sourceRepo);
+					sourceRepoSet = true;
 				}
 			} catch (URISyntaxException e) {
 				throw new IllegalArgumentException("invalid URL: " + arg);
@@ -63,7 +63,7 @@ implements IApplication {
 		}
 		if (!sourceRepoSet)
 		{
-			throw new IllegalArgumentException("The argument -artifactRepository is mandatory");
+			throw new IllegalArgumentException("The argument -artifactRepository is mandatory.");
 		}
 	}
 
