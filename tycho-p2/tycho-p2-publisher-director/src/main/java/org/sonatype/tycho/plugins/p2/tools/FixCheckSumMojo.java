@@ -8,7 +8,8 @@ import org.codehaus.plexus.util.cli.Commandline;
 import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
 
 /**
- * Invoke the application RecreateRepositoryApplication
+ * Invoke the application RecreateRepositoryApplication aniefer mentions that it
+ * will take care of packed repositories and update their checksum.
  * @goal fix-checksums
  */
 public class FixCheckSumMojo extends AbstractP2AppInvokerMojo {
@@ -17,7 +18,6 @@ public class FixCheckSumMojo extends AbstractP2AppInvokerMojo {
 	public static String RECREATE_REPOSITORY_APPLICATION = PUBLISHER_BUNDLE_ID + ".RecreateRepository";
 	
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		
 		try
 		{
 			Commandline cli = super.getCommandLine(RECREATE_REPOSITORY_APPLICATION);
@@ -28,11 +28,7 @@ public class FixCheckSumMojo extends AbstractP2AppInvokerMojo {
 		{
 			throw new MojoExecutionException("Error invoking the RecreateRepository application", ioe);
 		}
-		
 	}
 
-	
-	
-	
 	
 }
