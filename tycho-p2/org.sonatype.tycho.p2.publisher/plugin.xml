@@ -81,4 +81,24 @@
          </run>
       </application>
    </extension>
+   <extension id="RecreateRepository" point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="true">
+         <run
+               class="org.sonatype.tycho.p2.publisher.RecreateRepositoryApplication">
+         </run>
+      </application>
+   </extension>
+   <extension id="org.sonatype.tycho.p2.publisher.RecreateRepository" point="org.eclipse.core.runtime.applications">
+      <application
+            cardinality="1"
+            thread="any"
+            visible="true">
+         <run
+               class="org.sonatype.tycho.p2.publisher.RecreateRepositoryApplication">
+         </run>
+      </application>
+   </extension>
 </plugin>
