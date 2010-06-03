@@ -17,6 +17,13 @@ import org.sonatype.tycho.osgi.EquinoxEmbedder;
  */
 public abstract class AbstractP2AppInvokerMojo extends AbstractP2Mojo {
 
+	/**
+	 * Set to true to enable the packing.
+	 * @parameter default-value="false"
+	 */
+	protected boolean enablePackAndSign;
+
+	
     /** @component */
     protected EquinoxEmbedder p2;
     
@@ -26,7 +33,7 @@ public abstract class AbstractP2AppInvokerMojo extends AbstractP2Mojo {
      * 
      * @parameter expression="${p2.timeout}"
      */
-    private int forkedProcessTimeoutInSeconds;
+    protected int forkedProcessTimeoutInSeconds;
 
 	/**
 	 * @return The -consoleLog to enable the log or an empty string if not configured

@@ -218,7 +218,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
             //now same for the features and bundles that version would be something else than "0.0.0"
             for (FeatureRef featRef : productConfiguration.getFeatures())
             {
-            	if (featRef.getVersion().indexOf(VersioningHelper.QUALIFIER) != -1)
+            	if (featRef.getVersion() != null && featRef.getVersion().indexOf(VersioningHelper.QUALIFIER) != -1)
             	{
             		String newVersion = featRef.getVersion().replace(VersioningHelper.QUALIFIER, qualifier);
             		featRef.setVersion(newVersion);
@@ -226,7 +226,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
             }
             for (PluginRef plugRef : productConfiguration.getPlugins())
             {
-            	if (plugRef.getVersion().indexOf(VersioningHelper.QUALIFIER) != -1)
+            	if (plugRef.getVersion() != null && plugRef.getVersion().indexOf(VersioningHelper.QUALIFIER) != -1)
             	{
             		String newVersion = plugRef.getVersion().replace(VersioningHelper.QUALIFIER, qualifier);
             		plugRef.setVersion(newVersion);

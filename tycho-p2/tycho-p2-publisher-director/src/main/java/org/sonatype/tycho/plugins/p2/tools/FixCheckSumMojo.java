@@ -30,7 +30,8 @@ public class FixCheckSumMojo extends AbstractP2AppInvokerMojo {
 	public static String RECREATE_REPOSITORY_APPLICATION = PUBLISHER_BUNDLE_ID + ".RecreateRepository";
 	
 	/**
-	 * Set to true to enable this.
+	 * Set to true to force to enable this.
+	 * When false, if enablePackAndSign is true then we do it anyways.
 	 * @parameter default-value="false"
 	 */
 	private boolean recreateRepository;
@@ -57,7 +58,7 @@ public class FixCheckSumMojo extends AbstractP2AppInvokerMojo {
 	private String unpackPath;
 
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		if (!recreateRepository)
+		if (!recreateRepository && !enablePackAndSign)
 		{
 			return;
 		}

@@ -7,7 +7,7 @@
   <packaging>pom</packaging>
 
   <properties>
-    <tycho-version>0.9.0-SNAPSHOT</tycho-version>
+    <tycho-version>0.9.1-SNAPSHOT</tycho-version>
   </properties>
   
   <modules>
@@ -39,6 +39,18 @@
   </profiles>
 
   <build>
+    <pluginManagement>
+      <plugins>
+	<plugin>
+	  <groupId>org.sonatype.tycho</groupId>
+	  <artifactId>tycho-p2-publisher-director</artifactId>
+	  <version>${tycho-version}</version>
+	  <configuration>
+	    <enablePackAndSign>true</enablePackAndSign>
+	  </configuration>
+	</plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <groupId>org.sonatype.tycho</groupId>
