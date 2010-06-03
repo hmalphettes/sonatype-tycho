@@ -1,5 +1,6 @@
 package org.sonatype.tycho.p2.publisher;
 
+import java.io.File;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -10,6 +11,7 @@ import org.eclipse.equinox.internal.p2.updatesite.UpdateSitePublisherApplication
 import org.eclipse.equinox.p2.publisher.IPublisherAction;
 import org.eclipse.equinox.p2.publisher.PublisherInfo;
 import org.eclipse.equinox.p2.publisher.actions.JREAction;
+import org.eclipse.equinox.p2.publisher.eclipse.FeaturesAction;
 
 /**
  * Support for download stats and jre
@@ -30,6 +32,11 @@ public class FeaturesAndBundlesPublisherApplication extends org.eclipse.equinox.
 		ArrayList<IPublisherAction> newActions = new ArrayList<IPublisherAction>();
 		for (IPublisherAction action : actions)
 		{
+			if (action instanceof FeaturesAction)
+			{
+				//this action takes care of the root files.
+				action = FeaturesActionWithRootIUs.createFromOriginal((FeaturesAction)action);
+			}
 			newActions.add(action);
 		}
 		if (statsURI != null)
