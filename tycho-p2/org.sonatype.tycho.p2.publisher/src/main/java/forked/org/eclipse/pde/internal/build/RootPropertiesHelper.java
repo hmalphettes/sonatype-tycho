@@ -8,7 +8,7 @@
  *  Contributors:
  *      IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.eclipse.buckminster.pde.tasks;
+package forked.org.eclipse.pde.internal.build;
 
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -17,7 +17,12 @@ import java.util.Map;
 import java.util.Properties;
 
 /**
- * Copied and pasted from the pde build source code.
+ * Copied and pasted from the pde build source code: the org.eclipse.pde.internal.build.Utils#processRootProperties
+ * Inlined the necessary constants to not depend on the rest of the pde build.
+ * <p>
+ * This class supports the following format for the properties file:
+ * http://help.eclipse.org/galileo/index.jsp?topic=/org.eclipse.pde.doc.user/tasks/pde_rootfiles.htm
+ * </p>
  */
 public class RootPropertiesHelper {
 

@@ -9,7 +9,7 @@
  *      IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-package org.eclipse.buckminster.pde.tasks;
+package forked.org.eclipse.buckminster.pde.tasks;
 
 import java.io.File;
 import java.util.HashMap;
@@ -24,6 +24,15 @@ import org.eclipse.equinox.p2.metadata.Version;
 import org.eclipse.equinox.p2.publisher.AbstractAdvice;
 import org.eclipse.equinox.p2.publisher.actions.IFeatureRootAdvice;
 
+/**
+ * <p>
+ * hmalphettes: Copied from org.eclipse.buckminster.pde.tasks.FeatureRootAdvice
+ * http://dev.eclipse.org/viewsvn/index.cgi/trunk/org.eclipse.buckminster.pde/src/java/org/eclipse/buckminster/pde/tasks/FeatureRootAdvice.java?root=Tools_BUCKMINSTER&view=markup
+ * <br/>
+ * Made independent for pdebuild and the rest of buckminster.
+ * Added the implementation of the org.eclipse.equinox.p2.publisher.actions.IFeatureRootAdvice
+ * </p>
+ */
 @SuppressWarnings("restriction")
 public class FeatureRootAdvice extends AbstractAdvice implements IFeatureRootAdvice {
 	
@@ -114,7 +123,8 @@ public class FeatureRootAdvice extends AbstractAdvice implements IFeatureRootAdv
 			{
 				configAdvice.getDescriptor().addFiles(configAdvice.getFiles());
 			}
+			return configAdvice.getDescriptor();
 		}
-		return configAdvice != null ? configAdvice.getDescriptor() : null;
+		return null;
 	}
 }

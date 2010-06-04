@@ -8,7 +8,7 @@
  *  Contributors:
  *      IBM Corporation - initial API and implementation
  *******************************************************************************/
-package org.eclipse.buckminster.pde.tasks;
+package forked.org.eclipse.buckminster.pde.tasks;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,15 +22,26 @@ import org.apache.tools.ant.types.FileSet;
 import org.apache.tools.ant.types.PatternSet.NameEntry;
 import org.apache.tools.ant.types.selectors.FilenameSelector;
 import org.apache.tools.ant.types.selectors.OrSelector;
-import org.eclipse.buckminster.pde.tasks.FeatureRootAdvice.ConfigAdvice;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.equinox.internal.p2.core.helpers.StringHelper;
 import org.eclipse.equinox.internal.p2.publisher.FileSetDescriptor;
 
+import forked.org.eclipse.buckminster.pde.tasks.FeatureRootAdvice.ConfigAdvice;
+import forked.org.eclipse.pde.internal.build.RootPropertiesHelper;
+
 /**
+ * <p>
+ * Notes by hmalphettes:
  * Static methods copied from buckminster's code.
- * From the org.eclipse.buckminster.pde.tasks.FeaturesAction class
+ * From the org.eclipse.buckminster.pde.tasks.FeaturesAction class:
+ * http://dev.eclipse.org/viewsvn/index.cgi/trunk/org.eclipse.buckminster.pde/src/java/org/eclipse/buckminster/pde/tasks/FeaturesAction.java?root=Tools_BUCKMINSTER&view=markup
+ * <br/>
+ * Using {@link RootPropertiesHelper} 
+ * <br/>
+ * It would be nice to redo the directory scanner outside of ant.
+ * Currently this little piece of code is the only reason why we need ant.
+ * </p>
  */
 public class FeatureRootAdviceFactory {
 	
