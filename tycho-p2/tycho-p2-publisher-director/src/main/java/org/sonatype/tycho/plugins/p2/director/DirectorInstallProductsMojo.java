@@ -82,7 +82,8 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 			
 			super.execute(cli, null);
 			
-			super.createArchive(currentTarget, profile + "-" + toString(env));
+			//zip for windows, tar.gz for everyone else.
+			super.createArchive(currentTarget, profile + "-" + toString(env), env.getOs().indexOf("win") != -1 ? true: false);
 		}
 		catch (IOException ioe)
 		{
@@ -92,6 +93,34 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 	}
 	
 	private String getProfileValue(ProductConfiguration productConfiguration)
+	{
+		String prodName = productConfiguration.getName();
+    	if (prodName == null || prodName.length() == 0)
+    	{
+    		return getProfileValueFromProductId(productConfiguration);
+    	}
+    	StringBuilder profile = new StringBuilder();
+    	char[] chars = prodName.toCharArray();
+    	boolean upperCaseOnNext = true;
+    	for (int i = 0; i < chars.length; i++)
+    	{
+    		char c = chars[i];
+    		switch (c)
+    		{
+    		case ' ':
+    			upperCaseOnNext = true;
+    			break;
+    		default:
+    			profile.append(upperCaseOnNext ? Character.toUpperCase(c) : c);
+    			upperCaseOnNext = false;
+    		}
+    	}
+    	getLog().info("Computed profile " + profile + " for the product " + productConfiguration.getId());
+    	return profile.toString();
+	}
+
+	
+	private String getProfileValueFromProductId(ProductConfiguration productConfiguration)
 	{
 		String profile = null;
     	//let's do something a bit nicer:
@@ -124,9 +153,10 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
     	{
     		profile = "profile";
     	}
-    	getLog().info("Computed profile " + profile + " for the product " + productId);
+    	getLog().info("Computed profile from the productId " + profile + " for the product " + productId);
     	return profile;
 	}
+	
 
 	/**
 	 * @param environment

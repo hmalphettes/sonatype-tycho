@@ -9,6 +9,11 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.project.MavenProject;
 import org.apache.maven.project.MavenProjectHelper;
 import org.codehaus.plexus.PlexusContainer;
+import org.codehaus.plexus.archiver.AbstractArchiver;
+import org.codehaus.plexus.archiver.ArchiverException;
+import org.codehaus.plexus.archiver.tar.TarArchiver;
+import org.codehaus.plexus.archiver.tar.TarArchiver.TarCompressionMethod;
+import org.codehaus.plexus.archiver.tar.TarLongFileMode;
 import org.codehaus.plexus.archiver.zip.ZipArchiver;
 import org.codehaus.plexus.component.repository.exception.ComponentLookupException;
 import org.codehaus.tycho.ArtifactDependencyWalker;
@@ -148,13 +153,40 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
     	return getEclipseRepositoryProject().getCategoriesFiles(project);
     }
     
-    protected void createArchive( File target, String classifier )
+    /**
+     * 
+     * @param target
+     * @param classifier
+     * @param isZip true for a zip, false for a tar.gz
+     * @throws MojoExecutionException
+     */
+    protected void createArchive( File target, String classifier, boolean isZip )
     throws MojoExecutionException
 	{
-	    ZipArchiver zipper;
+    	AbstractArchiver zipper = null;
 	    try
 	    {
-	        zipper = (ZipArchiver) plexus.lookup( ZipArchiver.ROLE, "zip" );
+	    	if (isZip)
+	    	{
+	    		zipper =(AbstractArchiver) plexus.lookup( ZipArchiver.ROLE, "zip" );
+	    	}
+	    	else
+	    	{
+	    		//the TarArchiver does not supporting symbolic links: instead it archives the linked file.
+	    		TarArchiver tzipper = (TarArchiver) plexus.lookup(TarArchiver.ROLE, "tar");
+	    		TarCompressionMethod gzip = new TarCompressionMethod();
+	    		TarLongFileMode tarFileMode = new TarLongFileMode();
+	    		try {
+					gzip.setValue("gzip");
+		    		tarFileMode.setValue(TarLongFileMode.GNU);
+				} catch (ArchiverException e) {
+					throw new MojoExecutionException("Unable to setup the compression method", e);
+				}
+	    		tzipper.setCompression(gzip);
+	    		tzipper.setLongfile(tarFileMode);
+	    		
+	    		zipper= tzipper;
+	    	}
 	    }
 	    catch ( ComponentLookupException e )
 	    {
@@ -166,19 +198,28 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
 	    {
 	        filename.append( '-' ).append( classifier );
 	    }
-	    filename.append( ".zip" );
+	    filename.append( isZip ? ".zip" :  ".tar.gz" );
 	
 	    File destFile = new File( project.getBuild().getDirectory(), filename.toString() );
 	
-	    try
+	    boolean jobDone = false;
+	    if (!isZip)
 	    {
-	        zipper.addDirectory( target );
-	        zipper.setDestFile( destFile );
-	        zipper.createArchive();
+	    	jobDone = createTarGzOnCmdLine(target, destFile);
 	    }
-	    catch ( Exception e )
+	    
+	    if (!jobDone)
 	    {
-	        throw new MojoExecutionException( "Error packing product", e );
+		    try
+		    {
+		        zipper.addDirectory( target );
+		        zipper.setDestFile( destFile );
+		        zipper.createArchive();
+		    }
+		    catch ( Exception e )
+		    {
+		        throw new MojoExecutionException( "Error packing product", e );
+		    }
 	    }
 	
 	    if ( classifier != null )
@@ -191,6 +232,59 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
 	        project.getArtifact().setFile( destFile );
 	    }
 	}
-
+    
+    private static Boolean TAR_AVAILABLE = null;
+    
+    /**
+     * The plexus archiver does not save symbolic links.
+     * This is a workaround that will work only when building on a unix machine.
+     * We need the symbolic links support for the macosx launcher.
+     * @param target
+     * @param classifier
+     * @throws MojoExecutionException
+     */
+    private boolean createTarGzOnCmdLine( File target, File dest )
+    throws MojoExecutionException
+	{
+    	if (TAR_AVAILABLE == null)
+    	{
+	    	try
+	    	{
+	    		Process proc = Runtime.getRuntime().exec("tar --version");
+	    		int res = proc.waitFor();
+	    		if (res != 0)
+	    		{
+	    			getLog().warn("No tar available on the command line.");
+	    			TAR_AVAILABLE = Boolean.FALSE;
+	    			return false;
+	    		}
+			} catch (Exception e) {
+				TAR_AVAILABLE = Boolean.FALSE;
+				return false;
+			}
+			TAR_AVAILABLE = Boolean.TRUE;
+    	}
+    	else if (TAR_AVAILABLE == Boolean.FALSE)
+    	{
+    		return false;
+    	}
+    	
+    	try
+    	{
+    		String cmdLink = "tar -czf " + dest.getAbsolutePath() + /*" -C " + target.getAbsolutePath() +*/ " .";
+    		getLog().info("tar-gzip cmd-line: " + cmdLink);
+    		Process proc = Runtime.getRuntime().exec(cmdLink, null, target);
+    		int res = proc.waitFor();
+    		if (res != 0)
+    		{
+    			getLog().error("Unable to run tar on the command line.");
+    			return false;
+    		}
+    		return true;
+		} catch (Exception e) {
+			getLog().error("Unable to run tar on the command line", e);
+		}
+		return false;
+	}
 
 }

@@ -21,7 +21,7 @@ public class ArchiveRepositoryMojo extends AbstractP2Mojo {
 	 */
 	protected void archiveRepository() throws MojoExecutionException
 	{
-		super.createArchive(targetRepository, null);
+		super.createArchive(targetRepository, null, true);
 	}
 	
 }

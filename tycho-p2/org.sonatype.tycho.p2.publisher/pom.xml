@@ -10,7 +10,7 @@
 
   <artifactId>org.sonatype.tycho.p2.publisher</artifactId>
   <packaging>eclipse-plugin</packaging>
-  <name>P2 UpdateSite Publisher with JRE's IU. And support for downloadstats.</name>
+  <name>P2 Publisher extensions: FeatureRootIUS, downoad stats.</name>
 
   <build>
     <plugins>
