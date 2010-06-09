@@ -87,6 +87,12 @@ public abstract class AbstractArtifactDependencyWalker
     public void traverseProduct( ProductConfiguration product, ArtifactDependencyVisitor visitor )
     {
         Map<ArtifactKey, File> visited = new HashMap<ArtifactKey, File>();
+        traverseProduct(product, visitor, visited);
+        
+    }
+    
+    protected void traverseProduct( ProductConfiguration product, ArtifactDependencyVisitor visitor, Map<ArtifactKey, File> visited )
+    {
         if ( product.useFeatures() )
         {
             for ( FeatureRef ref : product.getFeatures() )
@@ -96,9 +102,9 @@ public abstract class AbstractArtifactDependencyWalker
         }
         else
         {
-            for ( PluginRef ref : product.getPlugins() )
+        	for ( PluginRef ref : product.getPlugins() )
             {
-                traversePlugin( ref, visitor, visited );
+            	traversePlugin( ref, visitor, visited );
             }
         }
 
@@ -179,7 +185,7 @@ public abstract class AbstractArtifactDependencyWalker
         }
     }
 
-    private void traversePlugin( PluginRef ref, ArtifactDependencyVisitor visitor, Map<ArtifactKey, File> visited )
+    protected void traversePlugin( PluginRef ref, ArtifactDependencyVisitor visitor, Map<ArtifactKey, File> visited )
     {
         if ( !matchTargetEnvironment( ref ) )
         {

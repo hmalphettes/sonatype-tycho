@@ -14,6 +14,7 @@ import org.codehaus.tycho.ArtifactDependencyWalker;
 import org.codehaus.tycho.ArtifactKey;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.TychoProject;
+import org.codehaus.tycho.model.PluginRef;
 import org.codehaus.tycho.model.ProductConfiguration;
 import org.codehaus.tycho.model.UpdateSite;
 
@@ -54,6 +55,19 @@ public class EclipseRepositoryProject extends AbstractArtifactBasedProject {
 					traverseProduct(product, visitor);
 				}
 			}
+            protected void traverseProduct( ProductConfiguration product, ArtifactDependencyVisitor visitor, Map<ArtifactKey, File> visited )
+            {
+            	if (product.useFeatures())
+            	{
+            		//this is arguable:
+            		//visit the plugins anyways. we want them to be published in the repository.
+                	for ( PluginRef ref : product.getPlugins() )
+                    {
+                    	traversePlugin( ref, visitor, visited );
+                    }
+            	}
+            	super.traverseProduct(product, visitor, visited);
+            }
 		};
 	}
 	

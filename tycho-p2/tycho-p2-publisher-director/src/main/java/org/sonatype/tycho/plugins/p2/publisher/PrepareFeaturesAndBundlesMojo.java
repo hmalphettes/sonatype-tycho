@@ -7,9 +7,11 @@ import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.tycho.ArtifactDependencyVisitor;
 import org.codehaus.tycho.FeatureDescription;
+import org.codehaus.tycho.PluginDescription;
 import org.codehaus.tycho.buildversion.VersioningHelper;
 import org.codehaus.tycho.eclipsepackaging.UpdateSiteAssembler;
 import org.codehaus.tycho.model.FeatureRef;
+import org.codehaus.tycho.model.PluginRef;
 import org.codehaus.tycho.model.UpdateSite;
 import org.codehaus.tycho.model.UpdateSite.SiteFeatureRef;
 import org.sonatype.tycho.plugins.p2.AbstractP2Mojo;
@@ -36,6 +38,9 @@ public class PrepareFeaturesAndBundlesMojo extends AbstractP2Mojo {
 			try
 			{
 				UpdateSite site = UpdateSite.read(categoryDef);
+				
+				//set the versions to their exact value.
+				//otherwise P2 won't publish them at all.
 				getDependencyWalker().traverseUpdateSite( site, new ArtifactDependencyVisitor()
 				{
 	                @Override
@@ -58,6 +63,26 @@ public class PrepareFeaturesAndBundlesMojo extends AbstractP2Mojo {
 	                    featureRef.setVersion( version );
 	                    return false; // don't traverse included features
 	                }
+
+					@Override
+					public void visitPlugin(PluginDescription plugin) {
+						PluginRef pluginRef = plugin.getPluginRef();
+	                    String id = pluginRef.getId();
+	                    MavenProject otherProject = plugin.getMavenProject();
+	                    String version;
+	                    if ( otherProject != null )
+	                    {
+	                        version = VersioningHelper.getExpandedVersion( otherProject, pluginRef.getVersion() );
+	                    }
+	                    else
+	                    {
+	                        version = plugin.getKey().getVersion();
+	                    }
+	                    //String url = UpdateSiteAssembler.PLUGINS_DIR + id + "_" + version + ".jar";
+	                    //( (SiteFeatureRef) featureRef ).setUrl( url );
+	                    pluginRef.setVersion( version );
+					}
+	                
 	            } );
 			}
             catch ( Exception e )
