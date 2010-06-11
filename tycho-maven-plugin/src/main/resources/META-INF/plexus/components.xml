@@ -292,7 +292,7 @@
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:prepare-features-and-bundles,
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:publish-repository
               </process-classes>
-              <!-- the pack and sign mojos can be invoked here during the prepare-package phase -->
+              <!-- the custom pack and sign mojos can be invoked here during the prepare-package phase -->
               <package>
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:pack-and-sign,
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:fix-checksums,
