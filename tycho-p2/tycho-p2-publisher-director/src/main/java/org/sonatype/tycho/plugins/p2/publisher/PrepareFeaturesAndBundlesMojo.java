@@ -63,25 +63,6 @@ public class PrepareFeaturesAndBundlesMojo extends AbstractP2Mojo {
 	                    featureRef.setVersion( version );
 	                    return false; // don't traverse included features
 	                }
-
-					@Override
-					public void visitPlugin(PluginDescription plugin) {
-						PluginRef pluginRef = plugin.getPluginRef();
-	                    String id = pluginRef.getId();
-	                    MavenProject otherProject = plugin.getMavenProject();
-	                    String version;
-	                    if ( otherProject != null )
-	                    {
-	                        version = VersioningHelper.getExpandedVersion( otherProject, pluginRef.getVersion() );
-	                    }
-	                    else
-	                    {
-	                        version = plugin.getKey().getVersion();
-	                    }
-	                    //String url = UpdateSiteAssembler.PLUGINS_DIR + id + "_" + version + ".jar";
-	                    //( (SiteFeatureRef) featureRef ).setUrl( url );
-	                    pluginRef.setVersion( version );
-					}
 	                
 	            } );
 			}
