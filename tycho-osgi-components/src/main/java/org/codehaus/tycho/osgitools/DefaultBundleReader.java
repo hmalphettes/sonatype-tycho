@@ -115,11 +115,11 @@ public class DefaultBundleReader
         }
         catch ( IOException e )
         {
-            getLogger().warn( "Exception reading bundle manifest", e );
+            getLogger().warn( "Exception reading bundle manifest " + bundleLocation.getAbsolutePath(), e );
         }
         catch ( PluginConversionException e )
         {
-            getLogger().warn( "Exception reading bundle manifest: " + e.getMessage() );
+            getLogger().warn( "Exception reading bundle manifest " + bundleLocation.getAbsolutePath() + ": " + e.getMessage() );
         }
 
         // not a bundle
