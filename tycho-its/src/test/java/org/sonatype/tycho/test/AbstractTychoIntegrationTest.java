@@ -9,8 +9,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.StringWriter;
-import java.util.jar.JarFile;
-import java.util.jar.Manifest;
 
 import org.apache.maven.it.Verifier;
 import org.apache.maven.it.util.DirectoryScanner;
@@ -68,6 +66,12 @@ public abstract class AbstractTychoIntegrationTest {
         verifier.getCliOptions().add("-s " + userSettings.getCanonicalPath());
         verifier.getVerifierProperties().put( "use.mavenRepoLocal", "true" );
         verifier.setLocalRepo( EnvironmentUtil.getLocalRepo() );
+
+        String customOptions = System.getProperty( "it.cliOptions" );
+        if ( customOptions != null && customOptions.trim().length() > 0 )
+        {
+            verifier.getCliOptions().add( customOptions );
+        }
 
         String m2eState = System.getProperty("m2eclipse.workspace.state");
         String m2eResolver = System.getProperty("m2eclipse.workspace.resolver");

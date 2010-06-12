@@ -50,4 +50,11 @@ public interface P2Resolver
     void setRepositoryCache( P2RepositoryCache repositoryCache );
 
     void setCredentials( URI location, String username, String password );
+
+    void setOffline( boolean offline );
+
+    /** 
+     * Releases all resources used by the resolver instance 
+     */
+    void stop();
 }
