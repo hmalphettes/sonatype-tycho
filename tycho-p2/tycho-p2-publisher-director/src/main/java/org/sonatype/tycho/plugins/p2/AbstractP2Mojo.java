@@ -160,7 +160,8 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
      * @param isZip true for a zip, false for a tar.gz
      * @throws MojoExecutionException
      */
-    protected void createArchive( File target, String classifier, boolean isZip )
+    protected void createArchive( File target, String classifier, boolean isZip,
+    		String destFileNameNoExtensionOfClassifier, String topLevelDirectory )
     throws MojoExecutionException
 	{
     	AbstractArchiver zipper = null;
@@ -193,8 +194,10 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
 	        throw new MojoExecutionException( "Unable to resolve ZipArchiver", e );
 	    }
 	
-	    StringBuilder filename = new StringBuilder( project.getBuild().getFinalName() );
-	    if ( classifier != null )
+	    StringBuilder filename = new StringBuilder( destFileNameNoExtensionOfClassifier == null
+	    		? project.getBuild().getFinalName()
+	    		: destFileNameNoExtensionOfClassifier);
+	    if ( classifier != null && filename.indexOf(classifier) == -1)
 	    {
 	        filename.append( '-' ).append( classifier );
 	    }
@@ -205,14 +208,24 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
 	    boolean jobDone = false;
 	    if (!isZip)
 	    {
-	    	jobDone = createTarGzOnCmdLine(target, destFile);
+	    	jobDone = createTarGzOnCmdLine(target, destFile, topLevelDirectory);
 	    }
 	    
 	    if (!jobDone)
 	    {
 		    try
 		    {
-		        zipper.addDirectory( target );
+		        if (topLevelDirectory == null)
+		        {
+		        	zipper.addDirectory( target );
+		        }
+		        else
+		        {
+		        	topLevelDirectory = topLevelDirectory.endsWith("/")
+        				? topLevelDirectory : (topLevelDirectory + "/");
+		        	zipper.addDirectory( target, topLevelDirectory);
+		        }
+		        System.err.println("directory " + target.getAbsolutePath() +  " with prefix " + topLevelDirectory);
 		        zipper.setDestFile( destFile );
 		        zipper.createArchive();
 		    }
@@ -243,7 +256,7 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
      * @param classifier
      * @throws MojoExecutionException
      */
-    private boolean createTarGzOnCmdLine( File target, File dest )
+    private boolean createTarGzOnCmdLine( File target, File dest, String topLevelDirectory )
     throws MojoExecutionException
 	{
     	if (TAR_AVAILABLE == null)
@@ -269,20 +282,39 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
     		return false;
     	}
     	
+		String oriName = null;
+		File wkDir = target;
     	try
-    	{
+    	{//tar -czvf
     		String cmdLink = "tar -czf " + dest.getAbsolutePath() + /*" -C " + target.getAbsolutePath() +*/ " .";
+    		if (topLevelDirectory != null) {
+    			oriName = dest.getName();
+    			wkDir = target.getParentFile();
+    			if (!topLevelDirectory.equals(target.getName())) {
+	    			String mvCmdLine = "mv " + target.getName() + " " + topLevelDirectory;
+	    			getLog().info("mv cmd-line: " + mvCmdLine + " executed in " + wkDir.getAbsolutePath());
+	    			Process proc = Runtime.getRuntime().exec(mvCmdLine, null, wkDir);
+	        		int res = proc.waitFor();
+	        		if (res != 0)
+	        		{
+	        			getLog().error("Unable to run mv on the command line: " + mvCmdLine + " in the folder " + wkDir.getAbsolutePath());
+	        			return false;
+	        		}
+    			}
+        		cmdLink = "tar -czf ../" + dest.getName() + " " + topLevelDirectory;
+    		}
+    		
     		getLog().info("tar-gzip cmd-line: " + cmdLink);
-    		Process proc = Runtime.getRuntime().exec(cmdLink, null, target);
+    		Process proc = Runtime.getRuntime().exec(cmdLink, null, wkDir);
     		int res = proc.waitFor();
     		if (res != 0)
     		{
-    			getLog().error("Unable to run tar on the command line.");
+    			getLog().error("Unable to run tar on the command line." + " executed in " + wkDir.getAbsolutePath());
     			return false;
     		}
     		return true;
 		} catch (Exception e) {
-			getLog().error("Unable to run tar on the command line", e);
+			getLog().error("Unable to run tar on the command line" + " in " + wkDir.getAbsolutePath(), e);
 		}
 		return false;
 	}

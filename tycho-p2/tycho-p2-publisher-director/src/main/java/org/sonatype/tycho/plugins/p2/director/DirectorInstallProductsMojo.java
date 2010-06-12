@@ -16,6 +16,7 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.codehaus.plexus.util.cli.Commandline;
 import org.codehaus.tycho.TargetEnvironment;
+import org.codehaus.tycho.buildversion.VersioningHelper;
 import org.codehaus.tycho.model.ProductConfiguration;
 import org.codehaus.tycho.p2.P2ArtifactRepositoryLayout;
 import org.sonatype.tycho.plugins.p2.AbstractP2AppInvokerMojo;
@@ -83,7 +84,14 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 			super.execute(cli, null);
 			
 			//zip for windows, tar.gz for everyone else.
-			super.createArchive(currentTarget, profile + "-" + toString(env), env.getOs().indexOf("win") != -1 ? true: false);
+			String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
+			version = VersioningHelper.getExpandedVersion(project, version);
+	        version = version.replace(VersioningHelper.QUALIFIER, qualifier);
+
+			String topLevelDirectory = profile + "-" + version;
+			super.createArchive(currentTarget, toString(env),
+					env.getOs().indexOf("win") != -1 ? true: false,
+							topLevelDirectory, topLevelDirectory);
 		}
 		catch (IOException ioe)
 		{
@@ -164,7 +172,11 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 	 */
     private File getTarget( TargetEnvironment environment, String profile )
     {
-        File target = new File( project.getBuild().getDirectory(), toString( environment ) + "/" + profile );
+		String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
+		version = VersioningHelper.getExpandedVersion(project, version);
+        version = version.replace(VersioningHelper.QUALIFIER, qualifier);
+
+        File target = new File( project.getBuild().getDirectory(), toString( environment ) + "/" + profile + "-" + version );
         target.mkdirs();
 
         return target;

@@ -2,6 +2,7 @@ package org.sonatype.tycho.plugins.p2.publisher;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.codehaus.tycho.buildversion.VersioningHelper;
 import org.sonatype.tycho.plugins.p2.AbstractP2Mojo;
 
 /**
@@ -21,7 +22,10 @@ public class ArchiveRepositoryMojo extends AbstractP2Mojo {
 	 */
 	protected void archiveRepository() throws MojoExecutionException
 	{
-		super.createArchive(targetRepository, null, true);
+		String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
+		version = VersioningHelper.getExpandedVersion(project, version);
+        version = version.replace(VersioningHelper.QUALIFIER, qualifier);
+		super.createArchive(targetRepository, null, true, project.getArtifactId() + "-" + version, "repository");
 	}
 	
 }

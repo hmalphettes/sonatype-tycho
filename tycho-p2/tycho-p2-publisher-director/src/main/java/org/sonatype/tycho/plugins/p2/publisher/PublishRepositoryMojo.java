@@ -44,13 +44,6 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 	public static String FEATURES_AND_BUNDLES_PUBLISHER_APP_NAME = PUBLISHER_BUNDLE_ID + ".FeaturesAndBundlesPublisher";
 	public static String PRODUCT_PUBLISHER_APP_NAME = PUBLISHER_ECLIPSE_BUNDLE_ID + ".ProductPublisher";
 	public static String CATEGORIES_PUBLISHER_APP_NAME = PUBLISHER_ECLIPSE_BUNDLE_ID + ".CategoryPublisher";
-
-    /**
-     * Build qualifier. Recommended way to set this parameter is using build-qualifier goal.
-     * 
-     * @parameter expression="${buildQualifier}"
-     */
-    protected String qualifier;
     
     /**
      * @parameter default-value="true"
