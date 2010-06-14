@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site name="example test site">
+   <feature url="features/org.sonatype.example.feature_1.0.0.v20100610.jar" id="org.sonatype.example.feature" version="1.0.0.v20100610">
+      <category name="Example Category"/>
+   </feature>
+   <category-def name="Example Category" label="Example Category Label" description="Example Category Descrioption."/>
+</site>

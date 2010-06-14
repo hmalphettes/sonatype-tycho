@@ -88,7 +88,7 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
 
     protected TychoProject getTychoProjectFacet(String packaging)
     {
-        TychoProject facet;
+    	TychoProject facet;
         try
         {
             facet = (TychoProject) session.lookup(TychoProject.class.getName(), packaging);
