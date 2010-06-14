@@ -14,7 +14,7 @@ public class PrepareFeaturesAndBundlesMojoTest
         super.setUp("projects/repositoryPackaging");
     }
 
-    public void testAssembly()
+    public void testAllSimple()
         throws Exception
     {
     	assemblemojo.execute();
@@ -29,11 +29,29 @@ public class PrepareFeaturesAndBundlesMojoTest
         
         publishmojo.execute();
         
-        File resultartifacts = new File( targetFolder, "repository/artifacts.xml" );
-        File resultcontent = new File( targetFolder, "repository/content.xml" );
+        File resultartifacts = new File( targetFolder, "repository/artifacts.jar" );
+        File resultcontent = new File( targetFolder, "repository/content.jar" );
         
         Assert.assertTrue( resultartifacts.exists() );
         Assert.assertTrue( resultcontent.exists() );
+        
+        long artifactsBeforePack = resultartifacts.length();
+        
+        setVariableValueToObject(packAndSignMojo, "enablePackAndSign", Boolean.TRUE);
+        packAndSignMojo.execute();
+        
+        //packing does not update the p2 index files.
+        Assert.assertEquals(resultartifacts.length(), artifactsBeforePack);
+        //1 new file for the pack.gz in the plugins.
+        Assert.assertEquals(resultplugins.list().length, 2);
+        //artifacts.jar and content.jar should not be packed.
+        Assert.assertFalse(new File(targetFolder, "artifacts.jar.pack.gz").exists());
+        
+        
+        //fix the checksums: the artifacts.jar should be modified.
+        fixCheckSumMojo.execute();
+        Assert.assertEquals(resultartifacts.length(), artifactsBeforePack);
+        
         
     }
 

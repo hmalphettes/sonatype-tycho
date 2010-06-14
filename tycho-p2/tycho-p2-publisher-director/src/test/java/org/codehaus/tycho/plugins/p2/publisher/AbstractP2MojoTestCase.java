@@ -11,9 +11,13 @@ import org.apache.maven.project.MavenProject;
 import org.codehaus.tycho.eclipsepackaging.PackageUpdateSiteMojo;
 import org.codehaus.tycho.testing.AbstractTychoMojoTestCase;
 import org.sonatype.tycho.osgi.EquinoxEmbedder;
+import org.sonatype.tycho.plugins.p2.director.DirectorInstallProductsMojo;
+import org.sonatype.tycho.plugins.p2.publisher.ArchiveRepositoryMojo;
 import org.sonatype.tycho.plugins.p2.publisher.FeaturesAndBundlesAssembler;
 import org.sonatype.tycho.plugins.p2.publisher.PrepareFeaturesAndBundlesMojo;
 import org.sonatype.tycho.plugins.p2.publisher.PublishRepositoryMojo;
+import org.sonatype.tycho.plugins.p2.tools.FixCheckSumMojo;
+import org.sonatype.tycho.plugins.p2.tools.PackAndSignMojo;
 
 public abstract class AbstractP2MojoTestCase
     extends AbstractTychoMojoTestCase
@@ -24,6 +28,10 @@ public abstract class AbstractP2MojoTestCase
 
 	protected PrepareFeaturesAndBundlesMojo assemblemojo;
 	protected PublishRepositoryMojo publishmojo;
+	protected PackAndSignMojo packAndSignMojo;
+	protected FixCheckSumMojo fixCheckSumMojo;
+	protected ArchiveRepositoryMojo archiveRepositoryMojo;
+	protected DirectorInstallProductsMojo archiveProductsMojo;
 
 	protected File targetFolder;
 	protected File targetRepositoryFolder;
@@ -44,18 +52,35 @@ public abstract class AbstractP2MojoTestCase
         targetRepositoryFolder =  new File(targetFolder, "repository");
 
         /* plexus:
+           	  <process-classes>
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:prepare-features-and-bundles,
                 org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:publish-repository
+              </process-classes>
+              <package>
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:pack-and-sign,
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:fix-checksums,
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:archive-repository,
+                org.sonatype.tycho:tycho-p2-publisher-director:${project.version}:archive-products
+              </package>
          */
         assemblemojo = (PrepareFeaturesAndBundlesMojo) lookupMojo( "prepare-features-and-bundles", project.getFile() );
         publishmojo = (PublishRepositoryMojo) lookupMojo( "publish-repository", project.getFile() );
+        
+        packAndSignMojo = (PackAndSignMojo) lookupMojo( "pack-and-sign", project.getFile() );
+        fixCheckSumMojo = (FixCheckSumMojo) lookupMojo( "fix-checksums", project.getFile() );
+        archiveRepositoryMojo = (ArchiveRepositoryMojo) lookupMojo( "archive-repository", project.getFile() );
+        archiveProductsMojo = (DirectorInstallProductsMojo) lookupMojo( "archive-products", project.getFile() );
+        
         setVariableValueToMojos( "project", project );
         setVariableValueToMojos( "session", session );
         setVariableValueToMojos( "targetRepository", targetRepositoryFolder);
         
+        //compress is true by default.
+        setVariableValueToObject(publishmojo, "compress", Boolean.TRUE);
+        
         //look for the tycho runtime built in the project:
         File tychoPublisherDirector = new File(getBasedir());//project.getFile().getParentFile();
-        System.err.println(tychoPublisherDirector.getAbsolutePath());
+        
         File tychoRuntime = new File(tychoPublisherDirector.getParentFile(), "tycho-p2-runtime/target/product/eclipse");
         if (!tychoRuntime.exists())
         {
@@ -68,6 +93,9 @@ public abstract class AbstractP2MojoTestCase
     private void setVariableValueToMojos(String param, Object value) throws Exception {
     	setVariableValueToObject( assemblemojo, param, value );
     	setVariableValueToObject( publishmojo, param, value );
+    	setVariableValueToObject( packAndSignMojo, param, value );
+    	setVariableValueToObject( fixCheckSumMojo, param, value );
+    	setVariableValueToObject( archiveProductsMojo, param, value );
     }
 
 }

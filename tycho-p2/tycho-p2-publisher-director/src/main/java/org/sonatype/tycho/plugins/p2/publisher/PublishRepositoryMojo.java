@@ -51,11 +51,6 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
     protected boolean compress;
 
     /**
-     * @parameter default-value="false"
-     */
-    protected boolean pack200;
-    
-    /**
      * @parameter default-value="tooling"
      */
     protected String flavor;
