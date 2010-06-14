@@ -10,6 +10,13 @@ public class BuildOutputJar {
 	private final File outputDirectory;
 	private List<String> extraClasspathEntries;
 	
+	/**
+	 * 
+	 * @param name
+	 * @param outputDirectory
+	 * @param sourceFolders
+	 * @param extraClasspathEntries
+	 */
 	public BuildOutputJar(String name, File outputDirectory, List<File> sourceFolders, List<String> extraClasspathEntries) {
 		this.name = name;
 		this.outputDirectory = outputDirectory;
@@ -32,4 +39,5 @@ public class BuildOutputJar {
 	public List<String> getExtraClasspathEntries() {
 		return extraClasspathEntries; 
 	}
+	
 }

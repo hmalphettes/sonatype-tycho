@@ -17,7 +17,7 @@ public interface EclipsePluginProject {
 
 	public List<BuildOutputJar> getOutputJars();
 
-//	public BuildOutputJar getDotOutputJar();
+	public BuildOutputJar getDotOutputJar();
 
 	public Map<String, BuildOutputJar> getOutputJarMap();
 }

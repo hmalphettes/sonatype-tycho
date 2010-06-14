@@ -74,8 +74,7 @@ public class PackagePluginMojo extends AbstractTychoPackagingMojo {
 
 	private void createSubJars() throws MojoExecutionException {
 		for (BuildOutputJar jar : pdeProject.getOutputJars()) {
-			System.err.println(jar.getName() + " -> " + jar.getOutputDirectory().getAbsolutePath());
-			if (!".".equals(jar.getName()) && !jar.getName().endsWith("/")) {
+			if (pdeProject.getDotOutputJar() != jar) {
 				makeJar(jar.getName(), jar.getOutputDirectory());
 			}
 		}
@@ -107,20 +106,18 @@ public class PackagePluginMojo extends AbstractTychoPackagingMojo {
 			List<String> binInludesList = toFilePattern(buildProperties.getProperty("bin.includes"));
 			List<String> binExcludesList = toFilePattern(buildProperties.getProperty("bin.excludes"));
 
-//			BuildOutputJar dotOutputJar = pdeProject.getDotOutputJar();
-//			if (dotOutputJar != null && binInludesList.contains(".")) {
-//				archiver.getArchiver().addDirectory(dotOutputJar.getOutputDirectory());
-//			}
-			if (binInludesList.contains("."))
-			{
-				//take care of all the directories: this will include the "." one
-				for (BuildOutputJar outputJar : pdeProject.getOutputJars())
+			BuildOutputJar dotOutputJar = pdeProject.getDotOutputJar();
+			if (dotOutputJar != null && binInludesList.contains(dotOutputJar.getName())) {
+				String prefix = dotOutputJar.getName();
+				if (prefix.equals("."))
 				{
-					if (outputJar.getName().equals(".") || outputJar.getName().endsWith("/"))
-					{
-						archiver.getArchiver().addDirectory(outputJar.getOutputDirectory());
-					}
+					prefix = "";
 				}
+				else 
+				{
+					//prefix is a relative path to folder: something like WEB-INF/classes/
+				}
+				archiver.getArchiver().addDirectory(dotOutputJar.getOutputDirectory(), prefix);
 			}
 			
 			if (binInludesList.size() > 0) {
