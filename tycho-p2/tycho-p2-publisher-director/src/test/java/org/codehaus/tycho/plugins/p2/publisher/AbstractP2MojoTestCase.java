@@ -10,6 +10,7 @@ import org.apache.maven.execution.MavenSession;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.tycho.eclipsepackaging.PackageUpdateSiteMojo;
 import org.codehaus.tycho.testing.AbstractTychoMojoTestCase;
+import org.sonatype.tycho.osgi.DefaultEquinoxEmbedder;
 import org.sonatype.tycho.osgi.EquinoxEmbedder;
 import org.sonatype.tycho.plugins.p2.director.DirectorInstallProductsMojo;
 import org.sonatype.tycho.plugins.p2.publisher.ArchiveRepositoryMojo;
@@ -77,7 +78,7 @@ public abstract class AbstractP2MojoTestCase
         
         //compress is true by default.
         setVariableValueToObject(publishmojo, "compress", Boolean.TRUE);
-        
+                
         //look for the tycho runtime built in the project:
         File tychoPublisherDirector = new File(getBasedir());//project.getFile().getParentFile();
         
@@ -86,8 +87,16 @@ public abstract class AbstractP2MojoTestCase
         {
         	Assert.fail("Unable to locate the built tycho runtime in " + tychoRuntime.getAbsolutePath());
         }
-        System.setProperty("equinox-runtimeLocation" /* org.sonatype.tycho.osgi.DefaultEquinoxEmbedder#SYSPROP_EQUINOX_RUNTIMELOCATION */,
+        System.setProperty(
+        		/* org.sonatype.tycho.osgi.DefaultEquinoxEmbedder#SYSPROP_EQUINOX_RUNTIMELOCATION */
+        		"equinox-runtimeLocation",
         		tychoRuntime.getAbsolutePath());
+
+//Using the EquinoxEmbedder does not work yet. Not sure how and if the application arguments get passed correctly.
+//        //use the EquinoxEmbedder by default:
+//        setVariableValueToP2InvokerMojos("invokeThroughEmbedder", Boolean.TRUE);
+//        setVariableValueToP2InvokerMojos("p2", new DefaultEquinoxEmbedder());
+
     }
     
     private void setVariableValueToMojos(String param, Object value) throws Exception {
@@ -96,6 +105,14 @@ public abstract class AbstractP2MojoTestCase
     	setVariableValueToObject( packAndSignMojo, param, value );
     	setVariableValueToObject( fixCheckSumMojo, param, value );
     	setVariableValueToObject( archiveProductsMojo, param, value );
+    }
+
+    private void setVariableValueToP2InvokerMojos(String param, Object value) throws Exception {
+    	//setVariableValueToObject( assemblemojo, param, value );
+    	setVariableValueToObject( publishmojo, param, value );
+    	setVariableValueToObject( packAndSignMojo, param, value );
+    	setVariableValueToObject( fixCheckSumMojo, param, value );
+    	//setVariableValueToObject( archiveProductsMojo, param, value );
     }
 
 }

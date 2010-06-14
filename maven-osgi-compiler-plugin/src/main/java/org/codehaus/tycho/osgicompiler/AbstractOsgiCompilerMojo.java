@@ -159,7 +159,18 @@ public abstract class AbstractOsgiCompilerMojo extends AbstractCompilerMojo {
 		}
 
 		// this does not include classes from nested jars
-		BuildOutputJar dotOutputJar = pdeProject.getDotOutputJar();
+		BuildOutputJar dotOutputJar = pdeProject.getOutputJarMap().get(".");
+		if (dotOutputJar == null)
+		{//take the first output that is a directory
+			for (BuildOutputJar outputJar : pdeProject.getOutputJars())
+			{
+				if (outputJar.getName().endsWith("/")) {
+					//take the first one.
+					dotOutputJar = outputJar;
+					break;
+				}
+			}
+		}
 		if (dotOutputJar != null) {
 			project.getArtifact().setFile(dotOutputJar.getOutputDirectory());
 		}

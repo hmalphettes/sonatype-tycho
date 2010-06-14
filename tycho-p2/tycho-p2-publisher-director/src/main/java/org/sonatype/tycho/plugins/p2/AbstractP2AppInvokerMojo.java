@@ -10,6 +10,7 @@ import org.codehaus.plexus.util.cli.CommandLineException;
 import org.codehaus.plexus.util.cli.CommandLineUtils;
 import org.codehaus.plexus.util.cli.Commandline;
 import org.codehaus.plexus.util.cli.StreamConsumer;
+import org.sonatype.tycho.osgi.DefaultEquinoxEmbedder;
 import org.sonatype.tycho.osgi.EquinoxEmbedder;
 
 /**
@@ -34,6 +35,17 @@ public abstract class AbstractP2AppInvokerMojo extends AbstractP2Mojo {
      * @parameter expression="${p2.timeout}"
      */
     protected int forkedProcessTimeoutInSeconds;
+    
+    /**
+     * Set to false to invoke the tycho runtime on the command line.
+     * By default true to invoke tycho's P2 embedder instead of starting a new process
+     * on the command-line.
+     * <p>
+     * For now: false, it does not work yet.
+     * </p>
+     * @parameter default-value="false"
+     */
+    protected boolean invokeThroughEmbedder;
 
 	/**
 	 * @return The -consoleLog to enable the log or an empty string if not configured
@@ -50,7 +62,7 @@ public abstract class AbstractP2AppInvokerMojo extends AbstractP2Mojo {
 	 */
     protected String[] getApplicationParameter(String application)
     {
-    	return new String[] {"-application", application};
+    	return new String[] {/*invokeThroughEmbedder ? "-Declipse.appplication" : */"-application", application};
     }
     
     /**
@@ -73,24 +85,64 @@ public abstract class AbstractP2AppInvokerMojo extends AbstractP2Mojo {
             executable = executable + ".exe";
         }
         cli.setExecutable( executable );
-        cli.addArguments( new String[] { "-jar", getEquinoxLauncher().getCanonicalPath(), } );
+        if (!invokeThroughEmbedder)
+        {
+        	cli.addArguments( new String[] { "-jar", getEquinoxLauncher().getCanonicalPath(), } );
+        }
         cli.addArguments(getApplicationParameter(application));
         cli.addArguments(new String[] {"-nosplash"});
         cli.addArguments(getConsoleLogFlag());
         
         return cli;
 	}
-    
+
+    /**
+     * Execute 
+     * @param cli
+     * @param vmArgs
+     * @throws MojoFailureException
+     * @throws MojoExecutionException
+     */
     protected void execute(Commandline cli, String vmArgs)
     throws MojoFailureException, MojoExecutionException {
-        //last argument is traditionally for the vm:
-        if (vmArgs != null && vmArgs.length() != 0)
+    	
+    	if (!invokeThroughEmbedder)
+    	{
+	        //last argument is traditionally for the vm:
+	        if (vmArgs != null && vmArgs.length() != 0)
+	        {
+	        	cli.addArguments(new String[] {"-vmargs", vmArgs});
+	        }
+    	}
+        
+    	if (!invokeThroughEmbedder)
+    	{
+    		getLog().info( "Command line:\n\t" + cli.toString() );
+    	}
+    	else
+    	{
+    		StringBuilder sb = new StringBuilder();
+    		for (String arg : cli.getArguments())
+    		{
+    			sb.append(" ");
+    			sb.append(arg);
+    		}
+    		getLog().info( "Equinox Embedder arguments:\n\t" + sb.toString() );
+    	}
+        if (invokeThroughEmbedder)
         {
-        	cli.addArguments(new String[] {"-vmargs", vmArgs});
+        	try
+        	{
+        		((DefaultEquinoxEmbedder)p2).setNonFrameworkArgs(cli.getArguments());
+				((DefaultEquinoxEmbedder)p2).start();
+			}
+        	catch (Exception e)
+        	{
+				throw new MojoExecutionException( "P2 publisher failed to be executed ", e );
+			}
+        	return;
         }
         
-        getLog().info( "Command line:\n\t" + cli.toString() );
-
         StreamConsumer out = new StreamConsumer()
         {
             public void consumeLine( String line )

@@ -20,7 +20,7 @@ public class EclipsePluginProjectImpl implements EclipsePluginProject {
 	private final Properties buildProperties;
 
 	private final LinkedHashMap<String, BuildOutputJar> outputJars = new LinkedHashMap<String, BuildOutputJar>();
-	private final BuildOutputJar dotOutputJar;
+//	private final BuildOutputJar dotOutputJar;
 
 	public EclipsePluginProjectImpl(MavenProject project) throws IOException {
 		this.project = project;
@@ -46,11 +46,11 @@ public class EclipsePluginProjectImpl implements EclipsePluginProject {
 				continue;
 			}
 			String jarName = key.substring(7);
-			File outputDirectory = ".".equals(jarName)
+			File outputDirectory = jarName.equals(".") || jarName.endsWith("/")
 					? new File(project.getBuild().getOutputDirectory())
 					: new File(project.getBuild().getDirectory(), jarName + "-classes");
-			List<File> sourceFolders = toFileList(project.getBasedir(), value.split(","));
 			
+			List<File> sourceFolders = toFileList(project.getBasedir(), value.split(","));
 			List<String> extraEntries = new ArrayList<String>();
 			if (buildProperties.getProperty("extra." + jarName) != null) {
 				extraEntries.addAll(Arrays.asList(buildProperties.getProperty("extra." + jarName).split(",")));
@@ -59,7 +59,7 @@ public class EclipsePluginProjectImpl implements EclipsePluginProject {
 			jars.put(jarName, new BuildOutputJar(jarName, outputDirectory, sourceFolders, extraEntries.size() == 0 ? globalExtraClasspath : extraEntries));
 		}
 
-		this.dotOutputJar = jars.get(".");
+//		this.dotOutputJar = jars.get(".");
 
 		for (BuildOutputJar jar : jars.values()) {
 			if (jar != null) {
@@ -107,9 +107,9 @@ public class EclipsePluginProjectImpl implements EclipsePluginProject {
 		return new ArrayList<BuildOutputJar>(outputJars.values());
 	}
 
-	public BuildOutputJar getDotOutputJar() {
-		return dotOutputJar;
-	}
+//	public BuildOutputJar getDotOutputJar() {
+//		return dotOutputJar;
+//	}
 
 	public Map<String, BuildOutputJar> getOutputJarMap() {
 		return outputJars;
