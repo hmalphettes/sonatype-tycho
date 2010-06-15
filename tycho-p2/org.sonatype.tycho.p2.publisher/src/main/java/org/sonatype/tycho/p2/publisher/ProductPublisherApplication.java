@@ -1,5 +1,6 @@
 package org.sonatype.tycho.p2.publisher;
 
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -7,6 +8,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.eclipse.equinox.internal.p2.updatesite.UpdateSitePublisherApplication;
+import org.eclipse.equinox.p2.publisher.AbstractPublisherApplication;
 import org.eclipse.equinox.p2.publisher.IPublisherAction;
 import org.eclipse.equinox.p2.publisher.PublisherInfo;
 import org.eclipse.equinox.p2.publisher.actions.JREAction;
@@ -22,6 +24,19 @@ public class ProductPublisherApplication extends org.eclipse.equinox.p2.publishe
 	private String statsPrefix = null;
 	private String statsSuffix = null;
 
+	public ProductPublisherApplication()
+	{
+		try {
+	    // TODO HACK to work around Eclipse bug #315757 so that context repositories can be set
+	         final Method setupAgentMethod = AbstractPublisherApplication.class.getDeclaredMethod("setupAgent"); //$NON-NLS-1$
+	         setupAgentMethod.setAccessible(true);
+	         setupAgentMethod.invoke(this);
+	     } catch (final Exception e) {
+	         e.printStackTrace();
+	         throw new RuntimeException(e);
+	     }
+	}
+		
 	@Override
 	protected IPublisherAction[] createActions()
 	{
