@@ -8,6 +8,8 @@ import java.util.ArrayList;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
+import junit.framework.Assert;
+
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionResult;
 import org.apache.maven.execution.MavenSession;
@@ -22,6 +24,7 @@ public class PackagePluginMojoTest extends AbstractTychoMojoTestCase {
 	public void testBinIncludesNoDot() throws Exception {
 		File basedir = getBasedir("projects/binIncludesNoDot");
 		basedir = new File(basedir, "p001");
+		
 		PackagePluginMojo mojo = execMaven(basedir);
 		createDummyClassFile(basedir);
 		mojo.execute();
@@ -31,6 +34,28 @@ public class PackagePluginMojoTest extends AbstractTychoMojoTestCase {
 			assertNull(
 					"class files from target/classes must not be included in plugin jar if no '.' in bin.includes",
 					pluginJar.getEntry("TestNoDot.class"));
+		} finally {
+			pluginJar.close();
+		}
+	}
+	
+	public void testOutputClassesInANestedFolder() throws Exception {
+		File basedir = getBasedir("projects/outputClassesInANestedFolder");
+		//Copy the hello.properties to simulate the compiler and resource mojos
+		File classes = new File(basedir, "target/classes/");
+		classes.mkdirs();
+		FileUtils.copyFileToDirectory(new File(basedir, "src/main/resources/hello.properties"), classes);
+		System.err.println(classes.getAbsolutePath());
+		PackagePluginMojo mojo = execMaven(basedir);
+		createDummyClassFile(basedir);
+		mojo.execute();
+		JarFile pluginJar = new JarFile(new File(basedir,
+				"target/test.jar"));
+		try {
+			//make sure we can find the WEB-INF/classes/hello.properties
+			//and no hello.properties.
+			Assert.assertNotNull(pluginJar.getEntry("WEB-INF/classes/hello.properties"));
+			Assert.assertNull(pluginJar.getEntry("hello.properties"));
 		} finally {
 			pluginJar.close();
 		}

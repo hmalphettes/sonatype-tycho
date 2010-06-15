@@ -158,6 +158,23 @@ public class PackagePluginMojo extends AbstractTychoPackagingMojo {
 
 		String originalVersion = getTychoProjectFacet().getArtifactKey( project ).getVersion();
         attributes.putValue("Bundle-Version", VersioningHelper.getExpandedVersion( project, originalVersion));
+        
+        //validate the Bundle-Classpath:
+        BuildOutputJar dotOutputJar = pdeProject.getDotOutputJar();
+		if (dotOutputJar != null)
+		{
+			String bundleClasspath = attributes.getValue("Bundle-Classpath");
+			if (bundleClasspath == null)
+			{
+				bundleClasspath = ".";
+			}
+			if (bundleClasspath.indexOf(dotOutputJar.getName()) == -1)
+			{
+				getLog().warn("The Bundle-Classpath entry does not list the path to the main output classes: no '" + 
+						dotOutputJar + "' in '" +
+						"Bundle-Classpath: " + bundleClasspath + "'.");
+			}
+		}
 
 		mfile = new File(project.getBuild().getDirectory(), "MANIFEST.MF");
 		mfile.getParentFile().mkdirs();
