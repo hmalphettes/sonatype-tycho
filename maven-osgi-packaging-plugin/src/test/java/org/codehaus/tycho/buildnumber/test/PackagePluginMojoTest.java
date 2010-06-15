@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
-import junit.framework.Assert;
-
 import org.apache.maven.execution.MavenExecutionRequest;
 import org.apache.maven.execution.MavenExecutionResult;
 import org.apache.maven.execution.MavenSession;
@@ -54,8 +52,8 @@ public class PackagePluginMojoTest extends AbstractTychoMojoTestCase {
 		try {
 			//make sure we can find the WEB-INF/classes/hello.properties
 			//and no hello.properties.
-			Assert.assertNotNull(pluginJar.getEntry("WEB-INF/classes/hello.properties"));
-			Assert.assertNull(pluginJar.getEntry("hello.properties"));
+			assertNotNull(pluginJar.getEntry("WEB-INF/classes/hello.properties"));
+			assertNull(pluginJar.getEntry("hello.properties"));
 		} finally {
 			pluginJar.close();
 		}
