@@ -135,7 +135,6 @@ public class UpdateSiteAssembler
     {
         String bundleId = plugin.getKey().getId();
         String version = plugin.getKey().getVersion();
-
         String relPath = PLUGINS_DIR + bundleId + "_" + version + ".jar";
         if ( archives != null && archives.containsKey( relPath ) )
         {
@@ -175,7 +174,7 @@ public class UpdateSiteAssembler
         } else {
         	 location = plugin.getLocation();
         }
-
+        
         if ( unpackPlugins && isDirectoryShape( plugin, location ) )
         {
             // need a directory

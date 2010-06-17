@@ -65,13 +65,18 @@ public class FeaturesActionWithRootIUs extends FeaturesAction {
 						baseDirectory = current;
 						break;
 					}
+					else if (new File(current, "pom.xml").exists())
+					{
+						baseDirectory = current;
+						break;
+					}
 				}
 				current = current.getParentFile();
 			}
-		}
-		if (baseDirectory == null)
-		{
-			System.err.println("********** Warn unable to find the base project directory from " + locations);
+			if (baseDirectory == null)
+			{
+				System.err.println("Warn: unable to find the base project directory from " + locations[0]);
+			}
 		}
 	}
 	

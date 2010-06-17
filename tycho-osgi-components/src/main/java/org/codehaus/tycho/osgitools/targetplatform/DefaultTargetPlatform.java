@@ -33,7 +33,7 @@ public class DefaultTargetPlatform
 
     protected Map<ArtifactKey, ArtifactDescription> artifacts = new LinkedHashMap<ArtifactKey, ArtifactDescription>();
 
-    protected Map<File, ArtifactDescription> locations = new LinkedHashMap<File, ArtifactDescription>();
+    public Map<File, ArtifactDescription> locations = new LinkedHashMap<File, ArtifactDescription>();
 
     public List<ArtifactDescription> getArtifacts( String type )
     {

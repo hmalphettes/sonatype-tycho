@@ -128,8 +128,7 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
 			{
 				//see http://wiki.eclipse.org/Equinox/p2/Publisher#Product_Publisher
 				
-				//first prepare an "expanded" product configuration (and eventually a small config.ini
-				//if we still find out that the bundles.info does not get generated.)
+				//first prepare an "expanded" product configuration
 				ExpandedProductConfiguration conf = expandProductConfiguration(prod);
 				
 				Commandline cli = super.getCommandLine(PRODUCT_PUBLISHER_APP_NAME);
@@ -196,10 +195,14 @@ public class PublishRepositoryMojo extends AbstractP2AppInvokerMojo {
         	File expandedProductFile = new File(project.getBuild().getDirectory(), productFile.getName());
         	ProductConfiguration productConfiguration = ProductConfiguration.read(productFile);
         	
-        	//this is where we can accomodate things.
+        	//this is where we can accommodate things.
         	//in particular need to expand the version otherwise the published artifact still has the '.qualifier'
-            String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
-            String productVersion = VersioningHelper.getExpandedVersion( project, version );
+            String productVersion = productConfiguration.getVersion(); //VersioningHelper.getExpandedVersion( project, version );
+            if (productVersion == null || productVersion.length() == 0)
+            {//should this be reported as an error?
+            	getLog().warn("No version defined for the product " + productFile.getAbsolutePath());
+            	productVersion = getTychoProjectFacet().getArtifactKey( project ).getVersion();
+            }
             productVersion = productVersion.replace(VersioningHelper.QUALIFIER, qualifier);
             productConfiguration.setVersion( productVersion );
             

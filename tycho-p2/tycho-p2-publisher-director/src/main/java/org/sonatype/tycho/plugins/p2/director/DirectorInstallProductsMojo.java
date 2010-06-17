@@ -84,8 +84,7 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 			super.execute(cli, null);
 			
 			//zip for windows, tar.gz for everyone else.
-			String version = getTychoProjectFacet().getArtifactKey( project ).getVersion();
-			version = VersioningHelper.getExpandedVersion(project, version);
+			String version = productConfiguration.getVersion();
 	        version = version.replace(VersioningHelper.QUALIFIER, qualifier);
 
 			String topLevelDirectory = profile + "-" + version;

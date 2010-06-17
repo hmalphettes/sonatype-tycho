@@ -76,7 +76,22 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
         return getTychoProjectFacet().getDependencyWalker( project );
     }
 
-    protected EclipseRepositoryProject getEclipseRepositoryProject()
+    public MavenProject getProject()
+    {
+    	return project;
+    }
+    
+    public MavenSession getSession()
+    {
+    	return session;
+    }
+    
+    public String getQualifier()
+    {
+    	return qualifier;
+    }
+    
+    public EclipseRepositoryProject getEclipseRepositoryProject()
     {
     	return (EclipseRepositoryProject)getTychoProjectFacet();
     }
@@ -225,7 +240,6 @@ public abstract class AbstractP2Mojo extends AbstractMojo {
         				? topLevelDirectory : (topLevelDirectory + "/");
 		        	zipper.addDirectory( target, topLevelDirectory);
 		        }
-		        System.err.println("directory " + target.getAbsolutePath() +  " with prefix " + topLevelDirectory);
 		        zipper.setDestFile( destFile );
 		        zipper.createArchive();
 		    }

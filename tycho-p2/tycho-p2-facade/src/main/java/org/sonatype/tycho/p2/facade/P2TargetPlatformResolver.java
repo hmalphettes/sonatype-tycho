@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,6 +31,7 @@ import org.apache.maven.artifact.resolver.MultipleArtifactsNotFoundException;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.project.MavenProject;
+import org.apache.maven.project.artifact.ProjectArtifact;
 import org.apache.maven.repository.RepositorySystem;
 import org.apache.maven.settings.Mirror;
 import org.apache.maven.settings.Server;
@@ -165,11 +167,11 @@ public class P2TargetPlatformResolver
 
         if ( TargetPlatformConfiguration.POM_DEPENDENCIES_CONSIDER.equals( configuration.getPomDependencies() ) )
         {
-            Set<String> projectIds = new HashSet<String>( session.getProjects().size() * 2 );
+            Map<String,MavenProject> projectIds = new HashMap<String,MavenProject>( session.getProjects().size() * 2 );
             for ( MavenProject p : session.getProjects() )
             {
                 String key = ArtifactUtils.key( p.getGroupId(), p.getArtifactId(), p.getVersion() );
-                projectIds.add( key );
+                projectIds.put( key, p );
             }
 
             ArrayList<String> scopes = new ArrayList<String>();
@@ -182,14 +184,59 @@ public class P2TargetPlatformResolver
             catch ( MultipleArtifactsNotFoundException e )
             {
                 Collection<Artifact> missing = new HashSet<Artifact>( e.getMissingArtifacts() );
-
+            	
                 for ( Iterator<Artifact> it = missing.iterator(); it.hasNext(); )
                 {
                     Artifact a = it.next();
                     String key = ArtifactUtils.key( a.getGroupId(), a.getArtifactId(), a.getBaseVersion() );
-                    if ( projectIds.contains( key ) )
+                    final MavenProject p = projectIds.get(key);
+                    if ( p != null )
                     {
-                        it.remove();
+                    	if (!a.hasClassifier())
+                    	{
+                    		e.getResolvedArtifacts().add(new ProjectArtifact(p));
+                    	}
+                    	else
+                    	{
+                    		final String classifier = a.getClassifier();
+                    		ProjectArtifact artifactWithClassifier = new ProjectArtifact(p)
+                    		{
+                    			public String getClassifier() {
+                    				return classifier;
+                    			}
+                    			public boolean hasClassifier() {
+                    				return true;
+                    			}
+                    			//need to override that one too: DefaultArtifact#hashCode uses
+                    			//the field 'classifier' directly which for us is null
+                    		    public int hashCode()
+                    		    {
+                    		        int result = 17;
+                    		        result = 37 * result + getGroupId().hashCode();
+                    		        result = 37 * result + getArtifactId().hashCode();
+                    		        result = 37 * result + getType().hashCode();
+                    		        if ( getVersion() != null )
+                    		        {
+                    		            result = 37 * result + getVersion().hashCode();
+                    		        }
+                    		        result = 37 * result + ( getClassifier() != null ? getClassifier().hashCode() : 0 );
+                    		        return result;
+                    		    }
+                    			public File getFile() {
+                    				for (Artifact a : p.getAttachedArtifacts())
+                    				{
+                    					if (classifier.equals(a.getClassifier()))
+                    					{
+                    						return a.getFile();
+                    					}
+                    				}
+                    				return null;//not ready yet.
+                    				//throw new IllegalStateException("No attached artifact with the classifier " + classifier);
+                    			}
+                    		};
+                    		e.getResolvedArtifacts().add(artifactWithClassifier);
+                    	}
+                    	it.remove();
                     }
                 }
 
@@ -197,7 +244,6 @@ public class P2TargetPlatformResolver
                 {
                     throw new RuntimeException( "Could not resolve project dependencies", e );
                 }
-
                 artifacts = e.getResolvedArtifacts();
                 artifacts.removeAll( e.getMissingArtifacts() );
             }
@@ -205,20 +251,40 @@ public class P2TargetPlatformResolver
             {
                 throw new RuntimeException( "Could not resolve project dependencies", e );
             }
+            
             for ( Artifact artifact : artifacts )
             {
                 String key =
                     ArtifactUtils.key( artifact.getGroupId(), artifact.getArtifactId(), artifact.getBaseVersion() );
-                if ( projectIds.contains( key ) )
+                if ( projectIds.containsKey( key ) )
                 {
                     // resolved to an older snapshot from the repo, we only want the current project in the reactor
-                    continue;
+                	continue;
                 }
                 if ( getLogger().isDebugEnabled() )
                 {
                     getLogger().debug( "P2resolver.addMavenArtifact " + artifact.toString() );
                 }
                 resolver.addMavenArtifact( new ArtifactFacade( artifact ) );
+            }
+            //also set it on the project: that is nice for a mojo that would need to access the list of resolved artifacts from the pom.
+            if (project.getDependencyArtifacts() == null || project.getDependencyArtifacts().size() == 0)
+            {
+                Set<Artifact> thisProjectArtifacts = new HashSet<Artifact>();
+                Set<String> simpleProjectIds = new HashSet<String>();
+                for (MavenProject proj : session.getProjects()) {
+                	simpleProjectIds.add(proj.getGroupId() + ":" + proj.getArtifactId());
+                }
+                for (Artifact a : artifacts) 
+                {
+                	if (a instanceof ProjectArtifact ||
+                			!simpleProjectIds.contains(a.getGroupId() + ":" + a.getArtifactId()))
+                	{
+                		thisProjectArtifacts.add(a);
+                	}
+                }
+	            project.setArtifacts(thisProjectArtifacts);
+	            project.setDependencyArtifacts(getDependencyArtifacts(project, thisProjectArtifacts));
             }
         }
 
@@ -484,4 +550,28 @@ public class P2TargetPlatformResolver
     {
         this.resolverFactory = equinox.getService( P2ResolverFactory.class );
     }
+    
+    /**
+     * @param project current project
+     * @param artifacts all the resolved dependencies artifacts transitively.
+     * @return The set of artifacts declared directly in the dependencies of this project.
+     */
+    private Set<Artifact> getDependencyArtifacts( MavenProject project, Set<Artifact> artifacts )
+    {
+        Set<Artifact> dependencyArtifacts = new LinkedHashSet<Artifact>( project.getDependencies().size() * 2 );
+        Set<String> directDependencies = new HashSet<String>( project.getDependencies().size() * 2 );
+        for ( Dependency dependency : project.getDependencies() )
+        {
+        	directDependencies.add(dependency.getGroupId() + ":" + dependency.getArtifactId() );
+        }
+        for ( Artifact artifact : artifacts )
+        {
+        	if ( directDependencies.contains( artifact.getGroupId() + ":" + artifact.getArtifactId() ) )
+            {
+            	dependencyArtifacts.add( artifact );
+            }
+        }
+        return dependencyArtifacts;
+    }
+    
 }
