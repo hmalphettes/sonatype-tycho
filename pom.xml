@@ -334,7 +334,7 @@
     </extensions>
 
     <plugins>
-      <!--plugin>
+      <plugin>
         <artifactId>maven-source-plugin</artifactId>
         <executions>
           <execution>
@@ -344,7 +344,7 @@
             </goals>
           </execution>
         </executions>
-      </plugin-->
+      </plugin>
     </plugins>
 
     <pluginManagement>

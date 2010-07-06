@@ -23,5 +23,17 @@
         </configuration>
       </plugin>
     </plugins>
+    <resources>
+      <resource>
+	  <directory>${project.basedir}</directory>
+	  <includes>
+	      <include>*.product</include>
+	  </includes>
+	  <excludes>
+	      <exclude>target/**/*</exclude>
+	      <exclude>bin/**/*</exclude>
+	  </excludes>
+      </resource>
+    </resources>
   </build>
 </project>
