@@ -313,11 +313,25 @@ class EclipseRepositoryProjectArtifactDependencyWalker extends AbstractArtifactD
 			}
 			else if (artifactDesc.getKey().getType().equals(TychoProject.ECLIPSE_FEATURE))
 			{
-				visitor.visitFeature((FeatureDescription)artifactDesc);
+				if (artifactDesc instanceof FeatureDescription)
+				{
+					visitor.visitFeature((FeatureDescription)artifactDesc);
+				}
+				else
+				{
+					getLogger().warn("Expecting a FeatureDescription for " + artifactDesc.getKey());
+				}
 			}
 			else if (artifactDesc.getKey().getType().equals(TychoProject.ECLIPSE_PLUGIN))
 			{
-				visitor.visitPlugin((PluginDescription)artifactDesc);
+				if (artifactDesc instanceof PluginDescription)
+				{
+					visitor.visitPlugin((PluginDescription)artifactDesc);
+				}
+				else
+				{
+					getLogger().warn("Expecting a PluginDescription for " + artifactDesc.getKey());
+				}
 			}
 			
 		}

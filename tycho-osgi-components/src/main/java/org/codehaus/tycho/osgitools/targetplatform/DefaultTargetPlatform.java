@@ -92,7 +92,14 @@ public class DefaultTargetPlatform
             File location = artifact.getLocation().getCanonicalFile();
             if ( !location.equals( artifact.getLocation() ) )
             {
-                return new DefaultArtifactDescription( artifact.getKey(), location, artifact.getMavenProject() );
+            	if (artifact instanceof DefaultArtifactDescription)
+            	{
+            		((DefaultArtifactDescription)artifact).setLocation(location);
+            	}
+            	else
+            	{
+            		return new DefaultArtifactDescription( artifact.getKey(), location, artifact.getMavenProject() );
+            	}
             }
             return artifact;
         }

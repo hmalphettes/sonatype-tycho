@@ -37,4 +37,9 @@ public class DefaultArtifactDescription
     {
         return project;
     }
+    
+    public void setLocation(File location)
+    {
+    	this.location = location;
+    }
 }

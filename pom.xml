@@ -414,8 +414,8 @@
   </build>
 
   <scm>
-    <connection>scm:git:git://github.com/sonatype/sonatype-tycho.git</connection>
-    <developerConnection>scm:git:git@github.com:sonatype/sonatype-tycho.git</developerConnection>
+    <connection>scm:git:git://github.com/hmalphettes/sonatype-tycho.git</connection>
+    <developerConnection>scm:git:git@github.com:hmalphettes/sonatype-tycho.git</developerConnection>
   </scm>
 
   <repositories>
