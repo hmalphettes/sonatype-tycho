@@ -69,8 +69,7 @@
     <dependency>
       <groupId>org.apache.maven.plugin-testing</groupId>
       <artifactId>maven-plugin-testing-harness</artifactId>
-      <version>${bootstrap-p1.version}</version>
-      <!--version>${project.version}</version-->
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
