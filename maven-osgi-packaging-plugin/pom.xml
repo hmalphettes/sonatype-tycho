@@ -17,17 +17,20 @@
     <dependency>
       <groupId>org.sonatype.tycho</groupId>
       <artifactId>tycho-osgi-components</artifactId>
-      <version>${project.version}</version>
+      <version>${bootstrap-p1.version}</version>
+      <!--version>${project.version}</version-->
     </dependency>
     <dependency>
       <groupId>org.sonatype.tycho</groupId>
       <artifactId>tycho-equinox</artifactId>
-      <version>${project.version}</version>
+      <version>${bootstrap-p1.version}</version>
+      <!--version>${project.version}</version-->
     </dependency>     
     <dependency>
       <groupId>org.sonatype.tycho</groupId>
       <artifactId>tycho-testing-harness</artifactId>
-      <version>${project.version}</version>
+      <version>${bootstrap-p1.version}</version>
+      <!--version>${project.version}</version-->
       <scope>test</scope>
     </dependency>
 

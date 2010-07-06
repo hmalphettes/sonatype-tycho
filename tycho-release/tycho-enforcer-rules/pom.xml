@@ -11,14 +11,15 @@
   <artifactId>tycho-enforcer-rules</artifactId>
 
   <properties>
-    <enforcer-version>1.0-beta-2-SNAPSHOT</enforcer-version>
+    <enforcer-version>1.0-beta-2</enforcer-version>
   </properties>
 
   <dependencies>
     <dependency>
       <groupId>org.sonatype.tycho</groupId>
       <artifactId>tycho-osgi-components</artifactId>
-      <version>${project.version}</version>
+      <version>${bootstrap-p1.version}</version>
+      <!--version>${project.version}</version-->
       <scope>provided</scope>
     </dependency>
     
