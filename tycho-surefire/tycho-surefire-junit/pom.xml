@@ -35,5 +35,19 @@
       </build>
     </profile>
   </profiles>
+  
+  
+  <!-- this seems necessary for the maven-source-plugin that is called by the release
+  to not complain that "Error creating source archive: You must set at least one file." -->
+  <build>
+    <resources>
+      <resource>
+	  <directory>${project.basedir}/src</directory>
+	  <includes>
+	      <include>**/*.java</include>
+	  </includes>
+      </resource>
+    </resources>
+  </build>
 
 </project>
