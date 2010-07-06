@@ -424,6 +424,16 @@
 
   <repositories>
     <repository>
+      <id>intalio</id>
+      <url>http://intalio.org/public/maven2/</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+    <repository>
       <id>sonatype-release</id>
       <url>http://repository.sonatype.org/content/groups/sonatype-public-grid</url>
       <snapshots>
