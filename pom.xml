@@ -311,7 +311,7 @@
   <distributionManagement>
 	  <repository>
 		  <id>release</id>
-		  <url>scp://intalio.org/var/www-org/public/maven2/</url>
+		  <url>scpexe://intalio.org/var/www-org/public/maven2/</url>
 	  </repository>
 	  <snapshotRepository>
 		  <id>snapshot</id>
