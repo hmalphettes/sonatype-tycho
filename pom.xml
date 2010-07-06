@@ -554,7 +554,8 @@
           <plugin>
             <groupId>org.sonatype.tycho</groupId>
             <artifactId>tycho-bootstrap-maven-plugin</artifactId>
-            <version>${project.version}</version>
+            <version>0.9.1</version>
+            <!--version>${project.version}</version-->
             <extensions>true</extensions>
           </plugin>
         </plugins>
