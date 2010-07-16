@@ -23,6 +23,12 @@ public class ValidateVersionMojo
      */
     private boolean strictVersions = true;
 
+    /**
+     * @parameter expression="${forceContextQualifier}"
+     */
+    private String forceContextQualifier;
+
+    
     public void execute()
         throws MojoExecutionException, MojoFailureException
     {
@@ -47,9 +53,23 @@ public class ValidateVersionMojo
     public void validateReleaseVersion( String mavenVersion, String osgiVersion )
         throws MojoExecutionException
     {
+    	
+    	if (forceContextQualifier != null && osgiVersion.endsWith(VersioningHelper.QUALIFIER))
+    	{
+    		//TYCHO-349 make sure that the forceContextqualifier property is defined
+    		//and that when we replace it we get the same than the maven version
+    		String osgiVersionNoQualifier = osgiVersion.substring(0, osgiVersion.length() - VersioningHelper.QUALIFIER.length());
+    		osgiVersion = osgiVersionNoQualifier + forceContextQualifier;
+    		if (osgiVersion.endsWith(".")) {
+    			//this is the case where there qualifier is the empty string and the version was 4.0.0.qualifier
+    			//in that case remove the last '.'
+    			osgiVersion = osgiVersion.substring(0, osgiVersion.length()-1);
+    		}
+    	}
+    	
         if ( !mavenVersion.equals( osgiVersion ) )
         {
-            fail( "OSGi version " + osgiVersion + " in " + getOSGiMetadataFileName() + " does not match Maven version "
+        	fail( "OSGi version " + osgiVersion + " in " + getOSGiMetadataFileName() + " does not match Maven version "
                 + mavenVersion + " in pom.xml" );
         }
     }
