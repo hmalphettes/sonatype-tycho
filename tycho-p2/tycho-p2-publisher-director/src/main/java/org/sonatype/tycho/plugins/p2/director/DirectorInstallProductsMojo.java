@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.StringTokenizer;
 import org.apache.maven.model.Repository;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.codehaus.plexus.util.AbstractScanner;
 import org.codehaus.plexus.util.cli.Commandline;
 import org.codehaus.tycho.TargetEnvironment;
 import org.codehaus.tycho.buildversion.VersioningHelper;
@@ -40,6 +42,22 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 	 * @parameter default-value="true"
 	 */
 	private boolean standaloneRepository;
+	
+	/**
+	 * String that defines the environments to archive as roaming products during the build.
+	 * if null, then none are archived.
+	 * The string look like this: os=antPattern;ws=antPattern;arch=antPattern
+	 * @parameter
+	 */
+	private String environmentsToArchive;
+	
+	/**
+	 * String that defines the product file names to archive as roaming products during the build.
+	 * if undefined then a wildcard is used so all of them are archived. The pattern is a usual ant pattern.
+	 * null or empty will archive none of them.
+	 * @parameter default-value="*"
+	 */
+	private String productsToArchive;
 	
 	private Map<String,File> _profiles = new HashMap<String,File>();
 
@@ -180,13 +198,65 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
 
         return target;
     }
-    
+
     /**
      * @return The list of environments for which an archive of a product is generated.
      */
     protected List<TargetEnvironment> getTargetEnvironmentsToArchive()
     {
-    	return super.getEnvironments();
+    	if (environmentsToArchive == null) {
+    		return Collections.EMPTY_LIST;
+    	}
+        StringTokenizer tokenizer = new StringTokenizer(environmentsToArchive, " \n\t\r", false);
+    	if (!tokenizer.hasMoreTokens()) {
+    		getLog().error("Illegal value for the parameter <environmentsToArchive>" + environmentsToArchive + "</environmentsToArchive>"
+    				+ " Expecting <environmentsToArchive>os=antPattern;ws=antPattern;arch=antPattern" +
+    						"   os=antPattern;ws=antPattern;arch=antPattern</environmentsToArchive>");
+    		return Collections.EMPTY_LIST;
+    	}
+    	List<String[]> patterns = new ArrayList<String[]>();
+        while (tokenizer.hasMoreTokens()) {
+            String tok = tokenizer.nextToken();
+    		String[] t = tok.split(";");
+    		if (t.length != 3) {
+    			getLog().error("Illegal value for one of the patterns.'" + tok + "'"
+        				+ " Expecting 'os=antPattern;ws=antPattern;arch=antPattern'");
+        		return Collections.EMPTY_LIST;
+    		}
+        	String os = null;
+        	String ws = null;
+        	String arch = null;
+        	for (String s : t) {
+        		if (s.startsWith("os=")) {
+        			os = s.substring(3);
+        		} else if (s.startsWith("ws=")) {
+        			ws = s.substring(3);
+        		} else if (s.startsWith("arch=")) {
+        			arch = s.substring(5);
+        		}
+        	}
+        	patterns.add(new String[] {os, ws, arch});
+    	}
+    	List<TargetEnvironment> res = new ArrayList<TargetEnvironment>();
+    	StringBuilder log = null;
+    	if (getLog().isInfoEnabled()) {
+    		log = new StringBuilder("Environments for which a product archive is generated: "+environmentsToArchive+" =>  \n  ");
+    	}
+    	for (TargetEnvironment te : super.getEnvironments()) {
+    		for (String[] pattern : patterns) {
+	    		if (AbstractScanner.match(pattern[0], te.getOs())
+	    				&& AbstractScanner.match(pattern[1], te.getWs())
+	    				&& AbstractScanner.match(pattern[2], te.getArch())) {
+	    			res.add(te);
+	    			log.append("os="+te.getOs()+";ws="+te.getWs()+";arch="+te.getArch()+"\n  ");
+	    			break;
+	    		}
+	    	}
+    	}
+    	if (getLog().isInfoEnabled()) {
+    		getLog().info(log.toString().trim());
+    	}
+    	return res;
     }
 
     /**
@@ -194,7 +264,36 @@ public class DirectorInstallProductsMojo extends AbstractP2AppInvokerMojo {
      */
     protected List<File> getProductFilesToArchive()
     {
-    	return super.getProductFiles();
+    	if (productsToArchive == null) {
+    		return Collections.EMPTY_LIST;
+    	}
+    	productsToArchive = productsToArchive.trim();
+    	if (productsToArchive.length() == 0) {
+    		return Collections.EMPTY_LIST;
+    	} else if (productsToArchive.equals("*")) {
+    		return super.getProductFiles();
+    	}
+    	StringBuilder log = new StringBuilder();
+    	if (getLog().isInfoEnabled()) {
+    		log = new StringBuilder("Product files for which an archive is generated: "+productsToArchive+" =>  \n  ");
+    	}
+    	List<File> res = new ArrayList<File>();
+    	boolean isFirst = true;
+    	for (File p : super.getProductFiles()) {
+    		if (AbstractScanner.match(productsToArchive, p.getName())) {
+    			res.add(p);
+    			if (isFirst) {
+    				isFirst = false;
+    			} else {
+    				log.append(", ");
+    			}
+    			log.append(p.getName());
+    		}
+    	}
+    	if (getLog().isInfoEnabled()) {
+    		getLog().info(log.toString().trim());
+    	}
+    	return res;
     }
     
     /**
